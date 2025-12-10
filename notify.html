@@ -1,0 +1,35 @@
+<?php
+include "db.html";
+
+function sendNotification($receiver_id, $message, $receiver_role = "user", $sender_role = "staff") {
+    global $conn;
+
+    // Validate inputs
+    if (empty($receiver_id) || $receiver_id <= 0) return;
+    if (empty($message)) return;
+
+    // Make sure ENUM values are valid
+    if (!in_array($receiver_role, ['user', 'staff'])) {
+        $receiver_role = 'user';
+    }
+
+    if (!in_array($sender_role, ['user', 'staff'])) {
+        $sender_role = 'staff';
+    }
+
+    // user_id field = receiver_id for simplest logic
+    $user_id = $receiver_id;
+
+    $stmt = $conn->prepare("
+        INSERT INTO notifications (user_id, receiver_id, message, receiver_role, sender_role, is_read, created_at)
+        VALUES (?, ?, ?, ?, ?, 0, NOW())
+    ");
+
+    if (!$stmt) {
+        die('Notification insert error: ' . $conn->error);
+    }
+
+    $stmt->bind_param("iisss", $user_id, $receiver_id, $message, $receiver_role, $sender_role);
+    $stmt->execute();
+    $stmt->close();
+}

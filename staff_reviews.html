@@ -1,0 +1,89 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<title>Staff Reviews</title>
+<style>
+body { font-family: Arial; background:#f4f4f4; }
+.sidebar {
+    width: 250px;
+    height: 100vh;
+    background: #7c4dff;
+    color: white;
+    position: fixed;
+    padding: 20px 10px;
+}
+.sidebar a {
+    display: block;
+    color: white;
+    padding: 12px;
+    text-decoration: none;
+    margin: 4px 0;
+    border-radius: 6px;
+}
+.sidebar a:hover { background:#5f38c9; }
+
+.main {
+    margin-left: 270px;
+    padding: 20px;
+}
+.table {
+    width: 100%;
+    background: white;
+    border-collapse: collapse;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+.table th, .table td {
+    padding: 10px;
+    border-bottom: 1px solid #ddd;
+}
+.table th {
+    background: #eee;
+    text-align: left;
+}
+.rating { color: gold; font-size: 16px; }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR (same style as your staff dashboard) -->
+<div class="sidebar">
+    <h2>BiteHub Staff</h2>
+
+    <a href="staff_dashboard.html">Dashboard</a>
+    <a href="menu_management.html">Menu Management</a>
+    <a href="staff_all_orders.html">Orders</a>
+    <a href="staff_notifications.html">Notifications</a>
+    <a href="staff_reviews.html" style="background:#5f38c9;">Reviews</a>
+    <a href="sales_overview.html">Sales Overview</a>
+    <a href="staff_logout.html">Logout</a>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="main">
+    <h2>Customer Reviews</h2>
+
+    <table class="table">
+        <tr>
+            <th>User</th>
+            <th>Menu Item</th>
+            <th>Rating</th>
+            <th>Comment</th>
+            <th>Date</th>
+        </tr>
+
+        
+            <tr>
+                <td></td>
+                <td></td>
+                <td class="rating"></td>
+                <td></td>
+                <td></td>
+            </tr>
+        
+
+    </table>
+</div>
+
+</body>
+</html>

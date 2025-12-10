@@ -1,0 +1,86 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Order Receipt</title>
+
+    <style>
+        body {
+            font-family: Arial;
+            background: #f5f0ff;
+            padding: 20px;
+        }
+
+        .receipt {
+            max-width: 600px;
+            margin: auto;
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0px 4px 12px rgba(0,0,0,0.15);
+        }
+
+        h2 {
+            text-align: center;
+            color: #5a2dff;
+            margin-bottom: 15px;
+        }
+
+        .item {
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .total {
+            margin-top: 15px;
+            font-size: 20px;
+            font-weight: bold;
+            text-align: right;
+        }
+
+        .back-btn {
+            display: block;
+            width: fit-content;
+            margin: 25px auto 0;
+            background: #555;
+            padding: 10px 16px;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="receipt">
+
+    <h2>Order Receipt</h2>
+
+    <p><strong>Order #:</strong> </p>
+    <p><strong>User:</strong> </p>
+    <p><strong>Date:</strong> </p>
+    <p><strong>Status:</strong> </p>
+
+    <hr>
+
+    <h3>Items:</h3>
+
+    
+        <div class="item">
+              
+            (x)  
+            — ₱
+        </div>
+    
+
+    <div class="total">
+        Total: ₱
+    </div>
+
+</div>
+
+<a href="staff_all_orders.html" class="back-btn">⬅ Back to Orders</a>
+
+</body>
+</html>

@@ -1,0 +1,22 @@
+<?php
+session_start();
+include "db.html";
+
+if (!isset($_SESSION['user_id'])) {
+    echo 0;
+    exit;
+}
+
+$user_id = intval($_SESSION['user_id']);
+
+$q = mysqli_query($conn,
+    "SELECT COUNT(*) AS unread
+     FROM notifications
+     WHERE receiver_id = $user_id
+       AND receiver_role = 'user'
+       AND sender_role = 'staff'
+       AND is_read = 0"
+);
+
+$row = mysqli_fetch_assoc($q);
+echo intval($row['unread']);

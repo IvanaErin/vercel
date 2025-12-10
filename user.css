@@ -1,0 +1,83 @@
+body {
+    background: #faf7ff;
+    font-family: Arial;
+    margin: 0;
+}
+
+.navbar {
+    background: #a278ff;
+    padding: 15px;
+    color: white;
+    display: flex;
+    justify-content: space-between;
+}
+
+.title {
+    text-align: center;
+    margin-top: 20px;
+    color: #5b32b3;
+}
+
+.menu-container {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    padding: 20px;
+}
+
+.menu-card {
+    background: white;
+    width: 250px;
+    padding: 15px;
+    border-radius: 12px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+}
+
+.menu-card img {
+    width: 100%;
+    border-radius: 10px;
+}
+
+button {
+    padding: 10px;
+    background: #a278ff;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+/* Notifications */
+.notif-box {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #a278ff;
+    color: white;
+    padding: 10px 20px;
+    border-radius: 10px;
+    display: none;
+}
+
+/* Draggable AI Icon */
+.ai-icon {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    font-size: 40px;
+    cursor: pointer;
+}
+
+/* Chat Box */
+.chat-box {
+    position: fixed;
+    bottom: 90px;
+    right: 20px;
+    width: 250px;
+    height: 300px;
+    background: white;
+    border: 2px solid #a278ff;
+    border-radius: 10px;
+    display: none;
+    padding: 10px;
+}

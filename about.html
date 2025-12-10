@@ -1,0 +1,237 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About - BiteHub</title>
+
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #ffffff;
+            color: #333;
+        }
+
+        /* HEADER */
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 30px;
+            background: #d8b4dd;
+        }
+
+        header .logo {
+            font-size: 26px;
+            font-weight: bold;
+            color: #ffffff;
+        }
+
+        nav a {
+            margin-left: 22px;
+            text-decoration: none;
+            font-weight: bold;
+            color: #ffffff;
+        }
+
+        nav a.active {
+            text-decoration: underline;
+        }
+
+        /* MAIN SECTION */
+        .section {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 40px;
+            padding: 60px 8%;
+        }
+
+        .section h2 {
+            font-size: 42px;
+            color: #6f42c1;
+            margin-bottom: 15px;
+        }
+
+        .section p {
+            font-size: 18px;
+            line-height: 1.7;
+        }
+
+        .section img {
+            width: 380px;
+            height: 380px;
+            object-fit: cover;
+            border-radius: 50%;
+            border: 6px solid #e7d1f2;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.12);
+        }
+
+        @media (max-width: 850px) {
+            .section {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .section img {
+                width: 260px;
+                height: 260px;
+            }
+        }
+
+        /* STAFF CARDS */
+        .staff-container {
+            display: flex;
+            justify-content: center;
+            gap: 25px;
+            flex-wrap: nowrap;
+            padding: 20px 8%;
+        }
+
+        @media(max-width: 900px) {
+            .staff-container {
+                flex-wrap: wrap;
+            }
+        }
+
+        .staff-card {
+            width: 220px;
+            background: #f7e9fb;
+            padding: 20px;
+            border-radius: 14px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .staff-card img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            border-radius: 12px;
+        }
+
+        .staff-card h3 {
+            margin-top: 12px;
+            font-size: 20px;
+            color: #6f42c1;
+        }
+
+        /* FOOTER */
+        footer {
+            background: #d8b4dd;
+            color: white;
+            padding: 25px 8%;
+            margin-top: 50px;
+        }
+
+        .footer-wrapper {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+        }
+
+        .footer-col {
+            width: 33%;
+            min-width: 200px;
+        }
+
+        .footer-col strong {
+            font-size: 18px;
+        }
+
+        @media(max-width: 700px) {
+            .footer-wrapper {
+                flex-direction: column;
+                text-align: center;
+            }
+            .footer-col {
+                width: 100%;
+                margin-bottom: 15px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="logo">Bitehub</div>
+    <nav>
+        <a href="index.html">Home</a>
+        <a href="about.html" class="active">About</a>
+        <a href="menu.html">Menu</a>
+        <a href="login.html">Login</a>
+    </nav>
+</header>
+
+<!-- ABOUT SECTION -->
+<section class="section">
+    <div>
+        <h2>BiteHub</h2>
+
+        <p>
+            North Eastern Mindanao State University (NEMSU) is a public state university located in 
+            Tandag City, Surigao del Sur. Formerly Surigao del Sur State University, NEMSU offers a 
+            wide variety of academic programs such as Industrial Technology, Agriculture, IT, Business 
+            Administration, Education, and more.
+        </p>
+
+        <p>
+            Inside the campus lies <b>BiteHub</b>, one of NEMSU’s most accessible and affordable food hubs. 
+            BiteHub serves students and staff with freshly prepared meals, snacks, and beverages — ensuring 
+            quality and convenience every day.
+        </p>
+
+        <p>
+            It operates in two locations inside NEMSU:
+            <br>• <b>CBM Department Canteen</b>
+            <br>• <b>CITE Department Canteen</b>
+        </p>
+    </div>
+
+    <img src="images/nemsu.jpg" alt="NEMSU Campus">
+</section>
+
+<!-- STAFF -->
+<section style="padding: 40px 8%; text-align:center;">
+    <h2 style="color:#6f42c1; font-size:38px; margin-bottom:30px;">Meet Our Staff</h2>
+
+    <div class="staff-container">
+
+        <div class="staff-card">
+            <img src="images/re.jpg" alt="Staff 1">
+            <h3>Staff Name 1</h3>
+        </div>
+
+        <div class="staff-card">
+            <img src="images/r.jpg" alt="Staff 2">
+            <h3>Staff Name 2</h3>
+        </div>
+
+        <div class="staff-card">
+            <img src="images/rea.jpg" alt="Staff 3">
+            <h3>Staff Name 3</h3>
+        </div>
+
+        <div class="staff-card">
+            <img src="images/rey.jpg" alt="Staff 4">
+            <h3>Staff Name 4</h3>
+        </div>
+
+    </div>
+</section>
+
+<footer>
+    <div class="footer-wrapper">
+        <div class="footer-col"><strong>Bitehub</strong></div>
+        <div class="footer-col">© 2025 Bitehub Company</div>
+        <div class="footer-col">
+            Location: Rosario, Tandag City, Surigao del Sur, Philippines <br>
+            Contact: 09628528920
+        </div>
+    </div>
+</footer>
+
+</body>
+</html>

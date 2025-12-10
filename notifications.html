@@ -1,0 +1,88 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Your Notifications</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f3f0ff;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 700px;
+            margin: auto;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0px 4px 12px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            text-align: center;
+            color: #5a2dff;
+        }
+
+        .notif-card {
+            padding: 15px;
+            background: #fafafa;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            border-left: 5px solid #6a4cff;
+        }
+
+        .notif-card.unread {
+            background: #fff3cd;
+            border-left-color: #ffb300;
+        }
+
+        .notif-date {
+            font-size: 12px;
+            color: #777;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 8px 14px;
+            border-radius: 6px;
+            text-decoration: none;
+            color: white;
+            font-size: 14px;
+        }
+
+        .btn-purple { background: #7c4dff; }
+        .btn-gray { background: #555; }
+
+        .button-row {
+            margin-bottom: 15px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <h2>Your Notifications</h2>
+
+    <div class="button-row">
+        <a href="notifications.html?mark_read=1" class="btn btn-purple">Mark all as read</a>
+        <a href="user.html" class="btn btn-gray">Back to Dashboard</a>
+    </div>
+
+    
+        <p style="text-align:center;">No notifications yet.</p>
+    
+
+    
+        <div class="notif-card ">
+            <br>
+            <span class="notif-date"></span>
+        </div>
+    
+
+</div>
+
+</body>
+</html>

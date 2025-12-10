@@ -1,0 +1,223 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+<title>Your Cart</title>
+
+<style>
+body {
+    font-family: Arial;
+    background: #f2f2f2;
+    margin: 0;
+    padding: 25px;
+}
+
+h2 { margin-bottom: 10px; }
+
+.cart-container {
+    display: flex;
+    gap: 25px;
+}
+
+.cart-items { flex: 2; }
+
+.cart-item {
+    display: flex;
+    gap: 15px;
+    padding: 12px;
+    background: #fff;
+    border-radius: 12px;
+    margin-bottom: 15px;
+}
+
+.cart-img {
+    width: 70px;
+    height: 70px;
+    object-fit: cover;
+    border-radius: 10px;
+}
+
+.cart-details h3 { margin: 0; font-size: 16px; }
+
+.qty-controls {
+    margin-top: 8px;
+}
+
+.qty-controls button {
+    padding: 5px 10px;
+    background: #ccc;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.qty-controls button:disabled {
+    background: #999;
+    cursor: not-allowed;
+}
+
+.remove-btn {
+    padding: 6px 12px;
+    background: #e74c3c;
+    border: none;
+    color: white;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-top: 10px;
+    text-decoration: none;
+    display: inline-block;
+}
+
+/* SUMMARY BOX */
+.summary {
+    flex: 1.2;
+    background: #fff;
+    padding: 20px;
+    border-radius: 15px;
+    height: fit-content;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+.summary-title {
+    font-size: 20px;
+    font-weight: bold;
+    margin-bottom: 15px;
+}
+
+.summary-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 12px;
+    font-size: 16px;
+}
+
+.checkout-btn {
+    width: 100%;
+    padding: 14px;
+    font-size: 17px;
+    background: #6a5acd;
+    border: none;
+    color: white;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.checkout-btn:hover {
+    background: #5a4acb;
+}
+
+.sold-out {
+    color: red;
+    font-weight: bold;
+    margin-top: 8px;
+}
+
+.back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 0 0 20px;
+    padding: 10px 16px;
+    background: #4CAF50;
+    color: white;
+    text-decoration: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+}
+</style>
+
+</head>
+<body>
+
+<h2>Your Cart</h2>
+
+<a href="user.html" class="back-btn">← Back to Dashboard</a>
+
+
+
+    <p>Your cart is empty.</p>
+
+
+
+<div class="cart-container">
+
+    <div class="cart-items">
+
+        
+            <div class="cart-item">
+
+                <img src="uploads/menu_images/" class="cart-img">
+
+                <div class="cart-details">
+
+                    <h3></h3>
+                    <p>₱</p>
+
+                    
+                        <p class="sold-out">Sold out — remove this item</p>
+
+                    
+                        <p class="sold-out">Only  left!</p>
+
+                    
+
+                    <div class="qty-controls">
+
+                        <!-- MINUS -->
+                        <form action="update_quantity.html" method="POST" style="display:inline;">
+                            <input type="hidden" name="cart_id" value="">
+                            <input type="hidden" name="action" value="minus">
+                            <button >-</button>
+                        </form>
+
+                        <span style="margin:0 10px;"></span>
+
+                        <!-- PLUS -->
+                        <form action="update_quantity.html" method="POST" style="display:inline;">
+                            <input type="hidden" name="cart_id" value="">
+                            <input type="hidden" name="action" value="plus">
+                            <button >+</button>
+                        </form>
+
+                    </div>
+
+                    <!-- ❤️ FIXED REMOVE BUTTON (uses cart_id now) -->
+                    <a href="remove_from_cart.html?cart_id=" class="remove-btn">Remove</a>
+
+                </div>
+
+            </div>
+        
+
+    </div>
+
+    <div class="summary">
+
+        <div class="summary-title">Order Summary</div>
+
+        <div class="summary-row">
+            <span>Total Items</span>
+            <span></span>
+        </div>
+
+        <div class="summary-row">
+            <span>Total Price</span>
+            <span>₱</span>
+        </div>
+
+        <hr>
+
+        <form action="place_order.html" method="POST">
+            <button class="checkout-btn" type="submit">Checkout</button>
+        </form>
+
+    </div>
+
+</div>
+
+
+
+</body>
+</html>

@@ -1,0 +1,10 @@
+<?php
+session_start();
+
+// Destroy ALL session data
+session_unset();
+session_destroy();
+
+// Redirect straight to homepage
+header("Location: staff_login.html");
+exit();
