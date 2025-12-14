@@ -1,8 +1,7 @@
 {
-  "name": "bitehub",
-  "private": true,
   "type": "module",
   "dependencies": {
+    "snowflake-sdk": "^1.9.0",
     "bcryptjs": "^2.4.3"
   }
 }
