@@ -17,13 +17,12 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  // -------- AUTH --------
+  // AUTH
   const token = req.headers.authorization?.replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "No token" });
 
-  let staff;
   try {
-    staff = jwt.verify(token, process.env.JWT_SECRET);
+    const staff = jwt.verify(token, process.env.JWT_SECRET);
     if (staff.role !== "staff") {
       return res.status(403).json({ error: "Forbidden" });
     }
@@ -31,8 +30,11 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: "Invalid token" });
   }
 
-  // -------- FORM --------
-  const form = formidable({ multiples: false });
+  // FORM
+  const form = formidable({
+    multiples: false,
+    maxFileSize: 5 * 1024 * 1024 // 5MB
+  });
 
   form.parse(req, async (err, fields, files) => {
     if (err) {
@@ -40,37 +42,37 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Form parse failed" });
     }
 
-    // ✅ FIXED FIELD READING
-    const name = fields.name;
-    const price = Number(fields.price);
-    const category = fields.category || "others";
-    const description = fields.description || "";
-    const servings = Number(fields.servings);
+    // ✅ CORRECT FIELD EXTRACTION
+    const name = fields.name?.[0];
+    const price = Number(fields.price?.[0]);
+    const category = fields.category?.[0] || "others";
+    const description = fields.description?.[0] || "";
+    const servings = Number(fields.servings?.[0]);
 
     if (!name || isNaN(price) || isNaN(servings)) {
       return res.status(400).json({
-        error: "Missing or invalid fields",
+        error: "Invalid fields",
         debug: { name, price, servings }
       });
     }
 
-    // -------- IMAGE --------
+    // IMAGE
     let imageUrl = "default.png";
 
-    if (files.image) {
+    if (files.image && files.image[0]) {
       try {
         const upload = await cloudinary.v2.uploader.upload(
-          files.image.filepath,
+          files.image[0].filepath,
           { folder: "menu" }
         );
         imageUrl = upload.secure_url;
       } catch (e) {
         console.error("CLOUDINARY ERROR:", e);
-        return res.status(500).json({ error: "Image upload failed" });
+        return res.status(500).json({ error: e.message });
       }
     }
 
-    // -------- DB --------
+    // DB
     const conn = snowflake.createConnection({
       account: process.env.SNOWFLAKE_ACCOUNT,
       username: process.env.SNOWFLAKE_USERNAME,
@@ -100,7 +102,7 @@ export default async function handler(req, res) {
           imageUrl,
           servings
         ],
-        complete: (err) => {
+        complete: err => {
           conn.destroy();
 
           if (err) {
