@@ -1,0 +1,23 @@
+<input id="username" placeholder="Username">
+<input id="password" type="password" placeholder="Password">
+<button onclick="login()">Login</button>
+
+<script>
+async function login() {
+  const res = await fetch("/api/staff-login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      username: username.value,
+      password: password.value
+    })
+  });
+
+  const data = await res.json();
+  if (!data.token) return alert("Invalid login");
+
+  localStorage.setItem("staff_token", data.token);
+  location.href = "/staff_dashboard.html";
+}
+</script>
+
