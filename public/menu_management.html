@@ -12,7 +12,10 @@ body { background:#f7f5fb; }
   width:220px; height:100vh; position:fixed;
   background:#fff; box-shadow:2px 0 6px rgba(0,0,0,.1);
 }
-.sidebar a { display:block; padding:12px 20px; text-decoration:none; color:#333; }
+.sidebar a {
+  display:block; padding:12px 20px;
+  text-decoration:none; color:#333;
+}
 .sidebar a.active { background:#b99ff1; color:#fff; }
 .main { margin-left:220px; padding:2rem; }
 </style>
@@ -93,14 +96,16 @@ document.getElementById("addMenuForm").onsubmit = async e => {
 
   const fd = new FormData(e.target);
 
-  const res = await fetch("/api/menu-add", {
+  const res = await fetch("/api/menu", {
     method: "POST",
-    headers: { Authorization: "Bearer " + token },
+    headers: {
+      Authorization: "Bearer " + token
+    },
     body: fd
   });
 
   const data = await res.json();
-  console.log(data);
+  console.log("API RESPONSE:", data);
 
   if (!res.ok) {
     alert(data.error || "Failed to add item");
@@ -115,4 +120,3 @@ document.getElementById("addMenuForm").onsubmit = async e => {
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
-
