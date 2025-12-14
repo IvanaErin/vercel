@@ -4,20 +4,29 @@
 
 <script>
 async function login() {
+  const usernameEl = document.getElementById("username");
+  const passwordEl = document.getElementById("password");
+
   const res = await fetch("/api/staff-login", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      username: username.value,
-      password: password.value
+      username: usernameEl.value,
+      password: passwordEl.value
     })
   });
 
   const data = await res.json();
-  if (!data.token) return alert("Invalid login");
 
+  if (!res.ok || !data.token) {
+    alert(data.error || "Invalid login");
+    return;
+  }
+
+  // ✅ Save staff token
   localStorage.setItem("staff_token", data.token);
+
+  // ✅ Redirect
   location.href = "/staff_dashboard.html";
 }
 </script>
-
