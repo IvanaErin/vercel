@@ -2,34 +2,7 @@ import snowflake from "snowflake-sdk";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
-function connectSnowflake() {
-  return new Promise((resolve, reject) => {
-    const conn = snowflake.createConnection({
-      account: process.env.SNOWFLAKE_ACCOUNT,
-      username: process.env.SNOWFLAKE_USERNAME,
-      password: process.env.SNOWFLAKE_PASSWORD,
-      warehouse: process.env.SNOWFLAKE_WAREHOUSE,
-      database: process.env.SNOWFLAKE_DATABASE,
-      schema: process.env.SNOWFLAKE_SCHEMA,
-      role: process.env.SNOWFLAKE_ROLE,
-    });
-
-    conn.connect(err => (err ? reject(err) : resolve(conn)));
-  });
-}
-
-function execute(conn, sql, binds = []) {
-  return new Promise((resolve, reject) => {
-    conn.execute({
-      sqlText: sql,
-      binds,
-      complete: (err, stmt, rows) => {
-        if (err) reject(err);
-        else resolve(rows);
-      },
-    });
-  });
-}
+const JWT_SECRET = process.env.JWT_SECRET;
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -42,50 +15,63 @@ export default async function handler(req, res) {
   }
 
   try {
-    const conn = await connectSnowflake();
+    const conn = snowflake.createConnection({
+      account: process.env.SNOWFLAKE_ACCOUNT,
+      username: process.env.SNOWFLAKE_USERNAME,
+      password: process.env.SNOWFLAKE_PASSWORD,
+      warehouse: process.env.SNOWFLAKE_WAREHOUSE,
+      database: process.env.SNOWFLAKE_DATABASE,
+      schema: process.env.SNOWFLAKE_SCHEMA,
+      role: process.env.SNOWFLAKE_ROLE,
+    });
 
-    const rows = await execute(
-      conn,
-      `
-      SELECT id, username, password, role
-      FROM ${process.env.SNOWFLAKE_DATABASE}.${process.env.SNOWFLAKE_SCHEMA}.users
-      WHERE LOWER(email) = ?
-      LIMIT 1
-      `,
-      [email.toLowerCase()]
+    await new Promise((resolve, reject) =>
+      conn.connect(err => (err ? reject(err) : resolve()))
     );
 
-    if (rows.length === 0) {
+    const rows = await new Promise((resolve, reject) =>
+      conn.execute({
+        sqlText: `
+          SELECT id, username, password, role
+          FROM users
+          WHERE LOWER(email) = ?
+          LIMIT 1
+        `,
+        binds: [email.toLowerCase()],
+        complete: (err, stmt, rows) =>
+          err ? reject(err) : resolve(rows),
+      })
+    );
+
+    if (!rows.length) {
       return res.status(401).json({ error: "Invalid email or password" });
     }
 
-    const { ID, USERNAME, PASSWORD, ROLE } = rows[0];
+    const user = rows[0];
+    const ok = await bcrypt.compare(password, user.PASSWORD);
 
-    const ok = await bcrypt.compare(password, PASSWORD);
     if (!ok) {
       return res.status(401).json({ error: "Invalid email or password" });
     }
 
-    // 🔐 CREATE JWT
+    // ✅ CREATE TOKEN
     const token = jwt.sign(
-      { id: ID, username: USERNAME, role: ROLE },
-      process.env.JWT_SECRET,
+      {
+        id: user.ID,
+        username: user.USERNAME,
+        role: user.ROLE,
+      },
+      JWT_SECRET,
       { expiresIn: "1d" }
     );
 
-    // ✅ RETURN TOKEN
     return res.json({
       success: true,
       token,
-      user: {
-        id: ID,
-        username: USERNAME,
-        role: ROLE,
-      },
     });
 
   } catch (err) {
-    console.error("LOGIN ERROR:", err);
+    console.error(err);
     return res.status(500).json({ error: "Server error" });
   }
 }
