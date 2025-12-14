@@ -1,1 +1,150 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Your Recent Orders</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<link rel="stylesheet" href="/style.css">
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  background: #f2ecff;
+  margin: 0;
+  padding: 0;
+}
+
+.navbar {
+  background:#7c4dff;
+  color:white;
+  padding:14px 22px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.navbar a {
+  color:white;
+  text-decoration:none;
+  margin-left:16px;
+  font-weight:bold;
+}
+
+h2 {
+  text-align:center;
+  color:#5a2dff;
+  margin:25px 0;
+}
+
+.cards-container {
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+  gap:20px;
+  padding:25px;
+  max-width:1200px;
+  margin:auto;
+}
+
+.card {
+  background:white;
+  border-radius:15px;
+  padding:20px;
+  box-shadow:0 4px 10px rgba(0,0,0,0.12);
+}
+
+.card h3 {
+  margin:0;
+  font-size:20px;
+}
+
+.card small {
+  color:#777;
+}
+
+.btn {
+  margin-top:12px;
+  background:#7c4dff;
+  padding:10px 14px;
+  display:inline-block;
+  color:white;
+  text-decoration:none;
+  border-radius:8px;
+}
+
+.no-orders {
+  text-align:center;
+  margin-top:40px;
+  font-size:18px;
+  color:#666;
+}
+</style>
+
+</head>
+
+<body>
+
+<div class="navbar">
+  <b>Your Orders</b>
+  <div>
+    <a href="/dashboard.html">⬅ Dashboard</a>
+  </div>
+</div>
+
+<h2>Recent Orders</h2>
+
+<div id="ordersContainer" class="cards-container">
+  <p class="no-orders">Loading orders...</p>
+</div>
+
+<script>
+const token = localStorage.getItem("token");
+if (!token) location.href = "/login.html";
+
+fetch("/api/orders?limit=4", {
+  headers: { Authorization: "Bearer " + token }
+})
+.then(r => r.json())
+.then(data => {
+  const box = document.getElementById("ordersContainer");
+  box.innerHTML = "";
+
+  if (!data.orders || data.orders.length === 0) {
+    box.innerHTML = "<p class='no-orders'>No recent orders yet.</p>";
+    return;
+  }
+
+  data.orders.forEach(order => {
+    let itemsHtml = "";
+    order.items.forEach(i => {
+      itemsHtml += `• ${i.name} (x${i.quantity})<br>`;
+    });
+
+    box.innerHTML += `
+      <div class="card">
+        <h3>Order #${order.id}</h3>
+        <small>${order.order_date}</small>
+        <p><b>Status:</b> ${order.status}</p>
+        <hr>
+        ${itemsHtml}
+        <hr>
+        <b>Total:</b> ₱${order.total_amount}
+        <br><br>
+        <a class="btn" href="/receipt.html?order_id=${order.id}">
+          View Receipt
+        </a>
+      </div>
+    `;
+  });
+})
+.catch(err => {
+  console.error(err);
+  document.getElementById("ordersContainer").innerHTML =
+    "<p class='no-orders'>Failed to load orders</p>";
+});
+</script>
+
+</body>
+</html>
 
