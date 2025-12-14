@@ -8,7 +8,13 @@
 <link rel="stylesheet" href="/style.css">
 
 <style>
-body { margin:0; font-family: Arial; background:#f2ebff; }
+body {
+  margin:0;
+  font-family: Arial, sans-serif;
+  background:#f2ebff;
+}
+
+/* NAVBAR */
 .navbar {
   background:#7c4dff;
   color:#fff;
@@ -17,8 +23,30 @@ body { margin:0; font-family: Arial; background:#f2ebff; }
   justify-content:space-between;
   align-items:center;
 }
-.nav-right a { color:white; text-decoration:none; margin-left:16px; }
-.badge { background:red; border-radius:50%; padding:2px 7px; font-size:12px; }
+
+.nav-right a {
+  color:white;
+  text-decoration:none;
+  margin-left:18px;
+  font-size:14px;
+}
+
+.badge {
+  background:red;
+  border-radius:50%;
+  padding:2px 7px;
+  font-size:12px;
+  margin-left:4px;
+}
+
+/* TITLE */
+.page-title {
+  text-align:center;
+  color:#7c4dff;
+  margin:20px 0;
+}
+
+/* MENU GRID */
 .menu-container {
   width:90%;
   margin:30px auto;
@@ -26,17 +54,80 @@ body { margin:0; font-family: Arial; background:#f2ebff; }
   grid-template-columns:repeat(auto-fill,minmax(260px,1fr));
   gap:20px;
 }
+
+/* CARD */
 .card {
   background:#fff;
   padding:14px;
-  border-radius:12px;
+  border-radius:14px;
+  box-shadow:0 4px 12px rgba(0,0,0,.08);
+  display:flex;
+  flex-direction:column;
 }
-.card img { width:100%; height:170px; object-fit:cover; border-radius:8px; }
+
+.card img {
+  width:100%;
+  height:170px;
+  object-fit:cover;
+  border-radius:10px;
+}
+
+.card h3 {
+  margin:10px 0 4px;
+}
+
+.card p {
+  margin:4px 0;
+  font-size:14px;
+}
+
+.card button {
+  margin-top:auto;
+  padding:10px;
+  background:#7c4dff;
+  color:white;
+  border:none;
+  border-radius:8px;
+  cursor:pointer;
+}
+
+/* FLOATING REVIEWS TAB */
+#reviews-tab {
+  position:fixed;
+  right:0;
+  top:50%;
+  transform:translateY(-50%);
+  background:#d1b3ff;
+  color:#5a2ecf;
+  padding:10px 14px;
+  border-radius:10px 0 0 10px;
+  font-weight:bold;
+  cursor:pointer;
+}
+
+/* FLOATING AI BUTTON */
+#ai-btn {
+  position:fixed;
+  bottom:20px;
+  right:20px;
+  background:#7c4dff;
+  color:white;
+  width:52px;
+  height:52px;
+  border-radius:50%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:22px;
+  cursor:pointer;
+  box-shadow:0 6px 14px rgba(0,0,0,.2);
+}
 </style>
 </head>
 
 <body>
 
+<!-- NAVBAR -->
 <div class="navbar">
   <div><b>Welcome, <span id="username">...</span> 👋</b></div>
   <div class="nav-right">
@@ -46,9 +137,15 @@ body { margin:0; font-family: Arial; background:#f2ebff; }
   </div>
 </div>
 
-<h2 style="text-align:center;color:#7c4dff">🍽️ Today’s Menu</h2>
+<!-- TITLE -->
+<h2 class="page-title">🍽️ Today’s Menu</h2>
 
+<!-- MENU -->
 <div class="menu-container" id="menuContainer"></div>
+
+<!-- FLOATING ELEMENTS -->
+<div id="reviews-tab">Reviews</div>
+<div id="ai-btn">🤖</div>
 
 <script src="/js/dashboard.js"></script>
 </body>
