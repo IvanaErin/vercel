@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -9,44 +8,68 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
 <style>
-:root { --accent:#6f3fb3; --lilac:#b99ff1; --muted:#f7f5fb; }
-body { background:var(--muted); margin:0; }
-
+:root {
+  --accent:#6f3fb3;
+  --lilac:#b99ff1;
+  --muted:#f7f5fb;
+}
+body {
+  background:var(--muted);
+  margin:0;
+  font-family:Arial, sans-serif;
+}
 .sidebar {
-  width:220px; height:100vh; position:fixed;
-  background:#fff; box-shadow:2px 0 6px rgba(0,0,0,.08);
+  width:220px;
+  height:100vh;
+  position:fixed;
+  background:#fff;
+  box-shadow:2px 0 6px rgba(0,0,0,.08);
 }
 .sidebar a {
-  display:block; padding:12px 20px;
-  text-decoration:none; color:#333;
+  display:block;
+  padding:12px 20px;
+  text-decoration:none;
+  color:#333;
 }
-.sidebar a.active, .sidebar a:hover {
-  background:var(--lilac); color:#fff;
+.sidebar a.active,
+.sidebar a:hover {
+  background:var(--lilac);
+  color:#fff;
 }
-
-.main { margin-left:220px; padding:2rem; }
+.main {
+  margin-left:220px;
+  padding:2rem;
+}
 .card { border-radius:12px; }
-.menu-img { width:64px;height:64px;object-fit:cover;border-radius:8px; }
+.menu-img {
+  width:64px;
+  height:64px;
+  object-fit:cover;
+  border-radius:8px;
+}
 </style>
-
 </head>
 
 <body>
 
+<!-- SIDEBAR -->
 <div class="sidebar">
   <h4 class="text-center mt-3" style="color:var(--accent)">Staff Panel</h4>
   <a href="/staff_dashboard.html">Dashboard</a>
   <a class="active">Menu Management</a>
   <a href="/orders.html">Orders</a>
-  <a href="/login.html" onclick="logout()">Logout</a>
+  <a href="/staff_login.html" onclick="logout()">Logout</a>
 </div>
 
+<!-- MAIN -->
 <div class="main">
+
+  <!-- HEADER -->
   <div class="card p-3 mb-3">
     <div class="d-flex justify-content-between align-items-center">
       <div>
         <h4 style="color:var(--accent)">Menu Management</h4>
-        <small class="text-muted">Manage menu items by category</small>
+        <small class="text-muted">Add, view, and delete menu items</small>
       </div>
       <button class="btn btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#addForm">
         + Add Item
@@ -55,63 +78,78 @@ body { background:var(--muted); margin:0; }
   </div>
 
   <!-- ADD FORM -->
-
   <div id="addForm" class="collapse mb-3">
     <div class="card p-3">
-      <form id="addMenuForm">
+      <form id="addMenuForm" enctype="multipart/form-data">
         <div class="row g-3">
+
           <div class="col-md-6">
             <input class="form-control" name="name" placeholder="Name" required>
           </div>
+
           <div class="col-md-3">
             <input class="form-control" name="price" type="number" step="0.01" placeholder="Price" required>
           </div>
+
           <div class="col-md-3">
             <input class="form-control" name="category" placeholder="Category">
           </div>
+
           <div class="col-12">
             <textarea class="form-control" name="description" placeholder="Description"></textarea>
           </div>
+
           <div class="col-md-6">
             <input class="form-control" type="file" name="image" accept="image/*">
           </div>
+
           <div class="col-12 text-end">
             <button class="btn btn-secondary" type="reset">Reset</button>
-            <button class="btn btn-primary">Add</button>
+            <button class="btn btn-primary" type="submit">Add Item</button>
           </div>
+
         </div>
       </form>
     </div>
   </div>
 
   <!-- MENU LIST -->
-
   <div id="menuContainer"></div>
+
 </div>
 
 <script>
 const token = localStorage.getItem("staff_token");
 if (!token) location.href = "/login.html";
 
-function logout(){ localStorage.removeItem("staff_token"); }
+function logout() {
+  localStorage.removeItem("staff_token");
+}
 
+/* LOAD MENU */
 fetch("/api/menu-list", {
-  headers:{ Authorization:"Bearer "+token }
+  headers: { Authorization: "Bearer " + token }
 })
-.then(r=>r.json())
-.then(data=>{
+.then(r => r.json())
+.then(data => {
   const c = document.getElementById("menuContainer");
-  c.innerHTML = data.categories.map(cat=>`
-    <div class="card mb-2">
+
+  if (!data.categories || !data.categories.length) {
+    c.innerHTML = "<p class='text-muted'>No menu items found.</p>";
+    return;
+  }
+
+  c.innerHTML = data.categories.map(cat => `
+    <div class="card mb-3">
       <div class="card-header"><b>${cat.name}</b></div>
       <div class="card-body">
-        ${cat.items.map(i=>`
+        ${cat.items.map(i => `
           <div class="d-flex align-items-center mb-2">
             <img src="${i.image || '/no-image.png'}" class="menu-img me-3">
             <div class="flex-grow-1">
               <b>${i.name}</b><br>
-              ₱${i.price.toFixed(2)}<br>
-              <small>${i.description||''}</small>
+              ₱${Number(i.price).toFixed(2)}<br>
+              <small class="text-muted">${i.description || ""}</small>
             </div>
             <button class="btn btn-sm btn-danger"
               onclick="deleteItem(${i.id})">Delete</button>
@@ -122,33 +160,46 @@ fetch("/api/menu-list", {
   `).join("");
 });
 
-document.getElementById("addMenuForm").onsubmit = async e=>{
+/* ADD MENU */
+document.getElementById("addMenuForm").onsubmit = async e => {
   e.preventDefault();
+
   const fd = new FormData(e.target);
 
-  await fetch("/api/menu-add", {
-    method:"POST",
-    headers:{ Authorization:"Bearer "+token },
-    body:fd
+  const res = await fetch("/api/menu-add", {
+    method: "POST",
+    headers: { Authorization: "Bearer " + token },
+    body: fd
   });
+
+  const data = await res.json();
+
+  if (!res.ok) {
+    alert(data.error || "Failed to add menu");
+    return;
+  }
+
+  alert("Menu added!");
   location.reload();
 };
 
-function deleteItem(id){
-  if(!confirm("Delete this item?")) return;
+/* DELETE MENU */
+function deleteItem(id) {
+  if (!confirm("Delete this item?")) return;
+
   fetch("/api/menu-delete", {
-    method:"POST",
-    headers:{
-      "Content-Type":"application/json",
-      Authorization:"Bearer "+token
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: "Bearer " + token
     },
-    body:JSON.stringify({id})
-  }).then(()=>location.reload());
+    body: JSON.stringify({ id })
+  })
+  .then(r => r.json())
+  .then(() => location.reload());
 }
 </script>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
 </body>
 </html>
-
