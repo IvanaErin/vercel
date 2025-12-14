@@ -32,7 +32,7 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: "Snowflake connection failed" });
     }
 
-    // 1️⃣ Get user_id of the order
+    // 1️⃣ Get order owner
     conn.execute({
       sqlText: `
         SELECT user_id
@@ -42,6 +42,7 @@ export default async function handler(req, res) {
       binds: [orderId],
       complete: (err, stmt, rows) => {
         if (err || rows.length === 0) {
+          conn.destroy();
           return res.status(404).json({ error: "Order not found" });
         }
 
@@ -57,11 +58,11 @@ export default async function handler(req, res) {
           binds: [orderId],
           complete: (err) => {
             if (err) {
-              console.error(err);
+              conn.destroy();
               return res.status(500).json({ error: "Failed to update order" });
             }
 
-            // 3️⃣ Insert notification
+            // 3️⃣ Notify user
             conn.execute({
               sqlText: `
                 INSERT INTO notifications
@@ -74,8 +75,9 @@ export default async function handler(req, res) {
                 `Your order #${orderId} has been accepted and is now being prepared.`,
               ],
               complete: (err) => {
+                conn.destroy();
+
                 if (err) {
-                  console.error(err);
                   return res.status(500).json({ error: "Failed to notify user" });
                 }
 
