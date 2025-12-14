@@ -13,49 +13,64 @@ cloudinary.v2.config({
 });
 
 export default async function handler(req, res) {
-  if (req.method !== "POST")
+  if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
+  }
 
-  // AUTH
+  // -------- AUTH --------
   const token = req.headers.authorization?.replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "No token" });
 
   let staff;
   try {
     staff = jwt.verify(token, process.env.JWT_SECRET);
-    if (staff.role !== "staff")
+    if (staff.role !== "staff") {
       return res.status(403).json({ error: "Forbidden" });
+    }
   } catch {
     return res.status(401).json({ error: "Invalid token" });
   }
 
-  // FORM
+  // -------- FORM --------
   const form = formidable({ multiples: false });
 
   form.parse(req, async (err, fields, files) => {
-    if (err)
+    if (err) {
+      console.error("FORM ERROR:", err);
       return res.status(400).json({ error: "Form parse failed" });
-
-    const name = fields.name?.[0];
-    const price = Number(fields.price?.[0]);
-    const category = fields.category?.[0] || "others";
-    const description = fields.description?.[0] || "";
-    const servings = Number(fields.servings?.[0]);
-
-    if (!name || isNaN(price) || isNaN(servings)) {
-      return res.status(400).json({ error: "Missing or invalid fields" });
     }
 
+    // ✅ FIXED FIELD READING
+    const name = fields.name;
+    const price = Number(fields.price);
+    const category = fields.category || "others";
+    const description = fields.description || "";
+    const servings = Number(fields.servings);
+
+    if (!name || isNaN(price) || isNaN(servings)) {
+      return res.status(400).json({
+        error: "Missing or invalid fields",
+        debug: { name, price, servings }
+      });
+    }
+
+    // -------- IMAGE --------
     let imageUrl = "default.png";
 
     if (files.image) {
-      const upload = await cloudinary.v2.uploader.upload(
-        files.image.filepath,
-        { folder: "menu" }
-      );
-      imageUrl = upload.secure_url;
+      try {
+        const upload = await cloudinary.v2.uploader.upload(
+          files.image.filepath,
+          { folder: "menu" }
+        );
+        imageUrl = upload.secure_url;
+      } catch (e) {
+        console.error("CLOUDINARY ERROR:", e);
+        return res.status(500).json({ error: "Image upload failed" });
+      }
     }
 
+    // -------- DB --------
     const conn = snowflake.createConnection({
       account: process.env.SNOWFLAKE_ACCOUNT,
       username: process.env.SNOWFLAKE_USERNAME,
@@ -66,8 +81,10 @@ export default async function handler(req, res) {
     });
 
     conn.connect(err => {
-      if (err)
+      if (err) {
+        console.error("DB CONNECT ERROR:", err);
         return res.status(500).json({ error: "DB connection failed" });
+      }
 
       conn.execute({
         sqlText: `
@@ -83,11 +100,13 @@ export default async function handler(req, res) {
           imageUrl,
           servings
         ],
-        complete: err => {
+        complete: (err) => {
           conn.destroy();
 
-          if (err)
+          if (err) {
+            console.error("SQL ERROR:", err);
             return res.status(500).json({ error: err.message });
+          }
 
           res.json({ success: true });
         }
