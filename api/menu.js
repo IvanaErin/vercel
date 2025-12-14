@@ -12,7 +12,7 @@ cloudinary.v2.config({
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-// ---------------- DB HELPER ----------------
+// ---------------- DB ----------------
 function db() {
   return snowflake.createConnection({
     account: process.env.SNOWFLAKE_ACCOUNT,
@@ -42,13 +42,12 @@ export default async function handler(req, res) {
   // GET MENU (STAFF VIEW)
   // ===============================
   if (req.method === "GET") {
-    const token = req.headers.authorization?.replace("Bearer ", "");
-    if (!token) return res.status(401).json({ error: "No token" });
-
     try {
+      const token = req.headers.authorization?.replace("Bearer ", "");
+      if (!token) throw "NO_TOKEN";
       jwt.verify(token, process.env.JWT_SECRET);
     } catch {
-      return res.status(401).json({ error: "Invalid token" });
+      return res.status(401).json({ error: "Unauthorized" });
     }
 
     const conn = db();
@@ -57,14 +56,7 @@ export default async function handler(req, res) {
 
       conn.execute({
         sqlText: `
-          SELECT
-            id,
-            name,
-            price,
-            description,
-            image,
-            category,
-            servings
+          SELECT id, name, price, description, image, category, servings
           FROM menu
           ORDER BY category, name
         `,
@@ -72,13 +64,10 @@ export default async function handler(req, res) {
           conn.destroy();
           if (err) return res.status(500).json({ error: err.message });
 
-          // GROUP BY CATEGORY
           const map = {};
           rows.forEach(r => {
             const cat = r.CATEGORY || "Others";
-            if (!map[cat]) {
-              map[cat] = { name: cat, items: [] };
-            }
+            if (!map[cat]) map[cat] = { name: cat, items: [] };
             map[cat].items.push({
               id: r.ID,
               name: r.NAME,
@@ -108,13 +97,16 @@ export default async function handler(req, res) {
 
     const form = formidable({
       multiples: false,
-      maxFileSize: 5 * 1024 * 1024 // 5MB
+      keepExtensions: true,
+      maxFileSize: 5 * 1024 * 1024
     });
 
     form.parse(req, async (err, fields, files) => {
-      if (err) return res.status(400).json({ error: "Form parse failed" });
+      if (err) {
+        console.error("FORM ERROR:", err);
+        return res.status(400).json({ error: "Form parse failed" });
+      }
 
-      // FIELD EXTRACTION (FORMIDABLE v3 SAFE)
       const name = fields.name?.toString();
       const price = Number(fields.price);
       const servings = Number(fields.servings);
@@ -128,23 +120,35 @@ export default async function handler(req, res) {
         });
       }
 
-      // IMAGE UPLOAD
+      // -------- IMAGE UPLOAD (FIXED) --------
       let imageUrl = "default.png";
 
       if (files.image) {
         try {
+          if (!files.image.filepath) {
+            console.error("FILE OBJECT:", files.image);
+            throw new Error("No filepath from Formidable");
+          }
+
           const upload = await cloudinary.v2.uploader.upload(
             files.image.filepath,
-            { folder: "menu" }
+            {
+              folder: "menu",
+              resource_type: "image"
+            }
           );
+
           imageUrl = upload.secure_url;
         } catch (e) {
           console.error("CLOUDINARY ERROR:", e);
-          return res.status(500).json({ error: "Image upload failed" });
+          return res.status(500).json({
+            error: "Image upload failed",
+            detail: e.message
+          });
         }
       }
 
-      // INSERT DB
+      // -------- INSERT DB --------
       const conn = db();
       conn.connect(err => {
         if (err) return res.status(500).json({ error: "DB connect failed" });
@@ -155,14 +159,7 @@ export default async function handler(req, res) {
             (name, price, category, description, image, servings)
             VALUES (?, ?, ?, ?, ?, ?)
           `,
-          binds: [
-            name,
-            price,
-            category,
-            description,
-            imageUrl,
-            servings
-          ],
+          binds: [name, price, category, description, imageUrl, servings],
           complete: err => {
             conn.destroy();
             if (err) return res.status(500).json({ error: err.message });
