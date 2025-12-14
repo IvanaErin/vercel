@@ -1,16 +1,4 @@
-import snowflake from "snowflake-sdk";
-
-function getConnection() {
-  return snowflake.createConnection({
-    account: process.env.SNOWFLAKE_ACCOUNT,
-    username: process.env.SNOWFLAKE_USERNAME,
-    password: process.env.SNOWFLAKE_PASSWORD,
-    database: process.env.SNOWFLAKE_DATABASE,
-    schema: process.env.SNOWFLAKE_SCHEMA,
-    warehouse: process.env.SNOWFLAKE_WAREHOUSE,
-    role: process.env.SNOWFLAKE_ROLE,
-  });
-}
+import bcrypt from "bcryptjs";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -23,28 +11,46 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "Missing fields" });
   }
 
-  const conn = getConnection();
+  try {
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-  conn.connect((err) => {
-    if (err) {
-      console.error(err);
-      return res.status(500).json({ error: "DB connection failed" });
+    const sql = `
+      INSERT INTO ${process.env.SNOWFLAKE_DATABASE}.${process.env.SNOWFLAKE_SCHEMA}.users
+      (username, email, password, role)
+      VALUES ('${username}', '${email}', '${hashedPassword}', 'user')
+    `;
+
+    const response = await fetch(
+      `https://${process.env.SNOWFLAKE_ACCOUNT}.snowflakecomputing.com/api/v2/statements`,
+      {
+        method: "POST",
+        headers: {
+          "Authorization":
+            "Basic " +
+            Buffer.from(
+              `${process.env.SNOWFLAKE_USER}:${process.env.SNOWFLAKE_PASSWORD}`
+            ).toString("base64"),
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          statement: sql,
+          warehouse: process.env.SNOWFLAKE_WAREHOUSE,
+          role: process.env.SNOWFLAKE_ROLE,
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error(data);
+      return res.status(500).json({ error: "User already exists or DB error" });
     }
 
-    conn.execute({
-      sqlText: `
-        INSERT INTO users (username, email, password)
-        VALUES (?, ?, ?)
-      `,
-      binds: [username, email, password],
-      complete: (err) => {
-        if (err) {
-          console.error(err);
-          return res.status(500).json({ error: "User already exists or DB error" });
-        }
+    return res.json({ success: true });
 
-        return res.json({ success: true });
-      },
-    });
-  });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Server error" });
+  }
 }
