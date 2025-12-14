@@ -1,23 +1,108 @@
-import { getPool } from '../lib/db';
+import snowflake from "snowflake-sdk";
 
-export default async function handler(req, res) {
-  const q = req.query.q || '';
-  const pool = getPool();
+function getConnection() {
+  return snowflake.createConnection({
+    account: process.env.SNOWFLAKE_ACCOUNT,
+    username: process.env.SNOWFLAKE_USERNAME,
+    password: process.env.SNOWFLAKE_PASSWORD,
+    database: process.env.SNOWFLAKE_DATABASE,
+    schema: process.env.SNOWFLAKE_SCHEMA,
+    warehouse: process.env.SNOWFLAKE_WAREHOUSE,
+    role: process.env.SNOWFLAKE_ROLE,
+  });
+}
 
-  try {
-    if (q === 'menu') {
-      const [rows] = await pool.execute('SELECT id, name, price, image FROM menu ORDER BY id DESC');
-      return res.json({ menu: rows });
+export default function handler(req, res) {
+  const q = req.query.q || "";
+  const id = Number(req.query.id || 0);
+
+  const conn = getConnection();
+
+  conn.connect((err) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: "Snowflake connection failed" });
     }
-    if (q === 'order' && req.query.id) {
-      const id = Number(req.query.id);
-      const [rows] = await pool.execute('SELECT * FROM orders WHERE id = ?', [id]);
-      return res.json({ order: rows[0] || null });
+
+    // 🔹 MENU LIST
+    if (q === "menu") {
+      conn.execute({
+        sqlText: `
+          SELECT id, name, price, image
+          FROM menu
+          ORDER BY id DESC
+        `,
+        complete: (err, stmt, rows) => {
+          conn.destroy();
+
+          if (err) {
+            console.error(err);
+            return res.status(500).json({ error: "Failed to fetch menu" });
+          }
+
+          const menu = rows.map((r) => ({
+            id: r.ID,
+            name: r.NAME,
+            price: r.PRICE,
+            image: r.IMAGE,
+          }));
+
+          return res.json({ menu });
+        },
+      });
+      return;
     }
-    const [menuCount] = await pool.execute('SELECT COUNT(*) as c FROM menu');
-    return res.json({ counts: menuCount[0].c });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ error: 'Server error' });
-  }
+
+    // 🔹 SINGLE ORDER
+    if (q === "order" && id) {
+      conn.execute({
+        sqlText: `
+          SELECT *
+          FROM orders
+          WHERE id = ?
+        `,
+        binds: [id],
+        complete: (err, stmt, rows) => {
+          conn.destroy();
+
+          if (err) {
+            console.error(err);
+            return res.status(500).json({ error: "Failed to fetch order" });
+          }
+
+          const order = rows.length
+            ? {
+                id: rows[0].ID,
+                user_id: rows[0].USER_ID,
+                total_amount: rows[0].TOTAL_AMOUNT,
+                status: rows[0].STATUS,
+                payment_method: rows[0].PAYMENT_METHOD,
+                created_at: rows[0].CREATED_AT,
+              }
+            : null;
+
+          return res.json({ order });
+        },
+      });
+      return;
+    }
+
+    // 🔹 DEFAULT COUNTS
+    conn.execute({
+      sqlText: `
+        SELECT COUNT(*) AS c
+        FROM menu
+      `,
+      complete: (err, stmt, rows) => {
+        conn.destroy();
+
+        if (err) {
+          console.error(err);
+          return res.status(500).json({ error: "Failed to fetch counts" });
+        }
+
+        return res.json({ counts: rows[0].C });
+      },
+    });
+  });
 }
