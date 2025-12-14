@@ -30,7 +30,7 @@ export default async function handler(req, res) {
           "Authorization":
             "Basic " +
             Buffer.from(
-              `${process.env.SNOWFLAKE_USER}:${process.env.SNOWFLAKE_PASSWORD}`
+              `${process.env.SNOWFLAKE_USERNAME}:${process.env.SNOWFLAKE_PASSWORD}`
             ).toString("base64"),
           "Content-Type": "application/json",
         },
@@ -74,7 +74,7 @@ export default async function handler(req, res) {
               "Authorization":
                 "Basic " +
                 Buffer.from(
-                  `${process.env.SNOWFLAKE_USER}:${process.env.SNOWFLAKE_PASSWORD}`
+                  `${process.env.SNOWFLAKE_USERNAME}:${process.env.SNOWFLAKE_PASSWORD}`
                 ).toString("base64"),
               "Content-Type": "application/json",
             },
