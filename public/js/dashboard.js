@@ -1,5 +1,8 @@
 const token = localStorage.getItem("token");
 
+// ------------------------
+// AUTH GUARD
+// ------------------------
 if (!token) {
   location.href = "/login.html";
 }
@@ -10,12 +13,17 @@ if (!token) {
 fetch("/api/me", {
   headers: { Authorization: "Bearer " + token }
 })
-.then(r => r.json())
+.then(r => {
+  if (!r.ok) throw "unauthorized";
+  return r.json();
+})
 .then(data => {
-  if (!data.success) throw "unauthorized";
   document.getElementById("username").innerText = data.user.username;
 })
-.catch(() => location.href = "/login.html");
+.catch(() => {
+  localStorage.removeItem("token");
+  location.href = "/login.html";
+});
 
 // ------------------------
 // LOAD MENU
@@ -32,6 +40,7 @@ fetch("/api/menu")
         <img src="${item.image}">
         <h3>${item.name}</h3>
         <p><b>₱${item.price}</b></p>
+        <p>${item.description || ""}</p>
         <button onclick="addToCart(${item.id})">Add to Cart</button>
       </div>
     `;
@@ -39,14 +48,45 @@ fetch("/api/menu")
 });
 
 // ------------------------
-// LOAD COUNTS
+// LOAD COUNTS (SAFE)
 // ------------------------
-fetch("/api/cart-count", { headers:{Authorization:`Bearer ${token}`}})
-  .then(r=>r.json()).then(d=>cartCount.innerText=d.total);
+const cartCountEl = document.getElementById("cartCount");
+const notifCountEl = document.getElementById("notifCount");
 
-fetch("/api/notifications", { headers:{Authorization:`Bearer ${token}`}})
-  .then(r=>r.json()).then(d=>notifCount.innerText=d.total);
+fetch("/api/cart-count", {
+  headers: { Authorization: `Bearer ${token}` }
+})
+.then(r => r.ok ? r.json() : { total: 0 })
+.then(d => cartCountEl.innerText = d.total || 0);
 
+fetch("/api/notifications", {
+  headers: { Authorization: `Bearer ${token}` }
+})
+.then(r => r.ok ? r.json() : { total: 0 })
+.then(d => notifCountEl.innerText = d.total || 0);
+
+// ------------------------
+// ADD TO CART (FIXED)
+// ------------------------
+function addToCart(menuId) {
+  fetch("/api/add-to-cart", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`
+    },
+    body: JSON.stringify({ menu_id: menuId })
+  })
+  .then(r => r.json())
+  .then(() => {
+    cartCountEl.innerText = Number(cartCountEl.innerText) + 1;
+    alert("✅ Added to cart");
+  })
+  .catch(() => alert("❌ Failed to add to cart"));
+}
+
+// ------------------------
+// LOGOUT
 // ------------------------
 function logout() {
   localStorage.removeItem("token");
