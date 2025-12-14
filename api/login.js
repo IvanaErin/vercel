@@ -12,10 +12,12 @@ export default async function handler(req, res) {
   }
 
   try {
+    const normalizedEmail = email.trim().toLowerCase();
+
     const sql = `
       SELECT id, username, password, role
       FROM ${process.env.SNOWFLAKE_DATABASE}.${process.env.SNOWFLAKE_SCHEMA}.users
-      WHERE email='${email}'
+      WHERE LOWER(email) = '${normalizedEmail}'
       LIMIT 1
     `;
 
@@ -45,26 +47,61 @@ export default async function handler(req, res) {
       return res.status(401).json({ error: "Invalid email or password" });
     }
 
-    const user = data.data[0];
-    const hashedPassword = user[2]; // password column
+    const [id, username, dbPassword, role] = data.data[0];
 
-    const match = await bcrypt.compare(password, hashedPassword);
+    let passwordMatch = false;
 
-    if (!match) {
+    // 🔐 CASE 1: Already hashed (normal flow)
+    if (dbPassword.startsWith("$2")) {
+      passwordMatch = await bcrypt.compare(password, dbPassword);
+    }
+    // ⚠️ CASE 2: Plain-text password (legacy account)
+    else {
+      passwordMatch = password === dbPassword;
+
+      // 🔁 Upgrade password to bcrypt immediately
+      if (passwordMatch) {
+        const newHash = await bcrypt.hash(password, 10);
+
+        const updateSql = `
+          UPDATE ${process.env.SNOWFLAKE_DATABASE}.${process.env.SNOWFLAKE_SCHEMA}.users
+          SET password = '${newHash}'
+          WHERE id = ${id}
+        `;
+
+        await fetch(
+          `https://${process.env.SNOWFLAKE_ACCOUNT}.snowflakecomputing.com/api/v2/statements`,
+          {
+            method: "POST",
+            headers: {
+              "Authorization":
+                "Basic " +
+                Buffer.from(
+                  `${process.env.SNOWFLAKE_USER}:${process.env.SNOWFLAKE_PASSWORD}`
+                ).toString("base64"),
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              statement: updateSql,
+              warehouse: process.env.SNOWFLAKE_WAREHOUSE,
+              role: process.env.SNOWFLAKE_ROLE,
+            }),
+          }
+        );
+      }
+    }
+
+    if (!passwordMatch) {
       return res.status(401).json({ error: "Invalid email or password" });
     }
 
     return res.json({
       success: true,
-      user: {
-        id: user[0],
-        username: user[1],
-        role: user[3],
-      },
+      user: { id, username, role },
     });
 
   } catch (err) {
-    console.error(err);
+    console.error("Login error:", err);
     return res.status(500).json({ error: "Server error" });
   }
 }
