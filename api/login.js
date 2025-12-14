@@ -5,19 +5,20 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { email, password } = req.body;
+  const { email: identifier, password } = req.body;
 
-  if (!email || !password) {
+  if (!identifier || !password) {
     return res.status(400).json({ error: "Missing fields" });
   }
 
   try {
-    const normalizedEmail = email.trim().toLowerCase();
+    const normalized = identifier.trim().toLowerCase();
 
     const sql = `
       SELECT id, username, password, role
       FROM ${process.env.SNOWFLAKE_DATABASE}.${process.env.SNOWFLAKE_SCHEMA}.users
-      WHERE LOWER(email) = '${normalizedEmail}'
+      WHERE LOWER(email) = '${normalized}'
+         OR LOWER(username) = '${normalized}'
       LIMIT 1
     `;
 
@@ -43,23 +44,19 @@ export default async function handler(req, res) {
 
     const data = await response.json();
 
-    if (!response.ok || !data.data || data.data.length === 0) {
-      return res.status(401).json({ error: "Invalid email or password" });
+    if (!data.data || data.data.length === 0) {
+      return res.status(401).json({ error: "Invalid username/email or password" });
     }
 
     const [id, username, dbPassword, role] = data.data[0];
 
     let passwordMatch = false;
 
-    // 🔐 CASE 1: Already hashed (normal flow)
     if (dbPassword.startsWith("$2")) {
       passwordMatch = await bcrypt.compare(password, dbPassword);
-    }
-    // ⚠️ CASE 2: Plain-text password (legacy account)
-    else {
+    } else {
       passwordMatch = password === dbPassword;
 
-      // 🔁 Upgrade password to bcrypt immediately
       if (passwordMatch) {
         const newHash = await bcrypt.hash(password, 10);
 
@@ -92,7 +89,7 @@ export default async function handler(req, res) {
     }
 
     if (!passwordMatch) {
-      return res.status(401).json({ error: "Invalid email or password" });
+      return res.status(401).json({ error: "Invalid username/email or password" });
     }
 
     return res.json({
