@@ -14,8 +14,12 @@ body {
   margin: 0;
   padding: 25px;
 }
-.cart-container { display:flex; gap:25px; }
+
+a { text-decoration:none; color:#6a5acd; font-weight:bold; }
+
+.cart-container { display:flex; gap:25px; margin-top:20px; }
 .cart-items { flex:2; }
+
 .cart-item {
   display:flex;
   gap:15px;
@@ -24,30 +28,40 @@ body {
   border-radius:12px;
   margin-bottom:15px;
 }
+
 .cart-img {
-  width:70px; height:70px;
+  width:70px;
+  height:70px;
   object-fit:cover;
   border-radius:10px;
 }
+
 .qty-controls button {
   padding:5px 10px;
   border:none;
   border-radius:5px;
   cursor:pointer;
+  margin:0 4px;
 }
+
 .remove-btn {
   background:#e74c3c;
   color:#fff;
   padding:6px 12px;
   border-radius:6px;
   cursor:pointer;
+  border:none;
+  margin-top:8px;
 }
+
 .summary {
   flex:1;
   background:#fff;
   padding:20px;
   border-radius:15px;
+  height:fit-content;
 }
+
 .checkout-btn {
   width:100%;
   padding:14px;
@@ -56,6 +70,7 @@ body {
   border:none;
   border-radius:10px;
   cursor:pointer;
+  font-size:16px;
 }
 </style>
 </head>
@@ -67,8 +82,12 @@ body {
 
 <div class="cart-container">
 
-  <div class="cart-items" id="cartItems"></div>
+  <!-- CART ITEMS -->
+  <div class="cart-items" id="cartItems">
+    <p>Loading cart...</p>
+  </div>
 
+  <!-- SUMMARY -->
   <div class="summary">
     <h3>Order Summary</h3>
     <p>Total Items: <b id="totalItems">0</b></p>
@@ -81,4 +100,3 @@ body {
 <script src="/js/cart.js"></script>
 </body>
 </html>
-
