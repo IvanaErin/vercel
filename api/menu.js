@@ -12,7 +12,7 @@ cloudinary.v2.config({
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
-// ---------------- DB ----------------
+// ---------------- DB HELPER ----------------
 function db() {
   return snowflake.createConnection({
     account: process.env.SNOWFLAKE_ACCOUNT,
@@ -39,16 +39,32 @@ function requireStaff(req) {
 export default async function handler(req, res) {
 
   // ===============================
-  // LIST MENU (PUBLIC)
+  // GET MENU (STAFF VIEW)
   // ===============================
   if (req.method === "GET") {
+    const token = req.headers.authorization?.replace("Bearer ", "");
+    if (!token) return res.status(401).json({ error: "No token" });
+
+    try {
+      jwt.verify(token, process.env.JWT_SECRET);
+    } catch {
+      return res.status(401).json({ error: "Invalid token" });
+    }
+
     const conn = db();
     conn.connect(err => {
       if (err) return res.status(500).json({ error: "DB connect failed" });
 
       conn.execute({
         sqlText: `
-          SELECT id, name, price, description, image, category, servings
+          SELECT
+            id,
+            name,
+            price,
+            description,
+            image,
+            category,
+            servings
           FROM menu
           ORDER BY category, name
         `,
@@ -56,25 +72,24 @@ export default async function handler(req, res) {
           conn.destroy();
           if (err) return res.status(500).json({ error: err.message });
 
-          const categories = {};
+          // GROUP BY CATEGORY
+          const map = {};
           rows.forEach(r => {
-            if (!categories[r.CATEGORY]) categories[r.CATEGORY] = [];
-            categories[r.CATEGORY].push({
+            const cat = r.CATEGORY || "Others";
+            if (!map[cat]) {
+              map[cat] = { name: cat, items: [] };
+            }
+            map[cat].items.push({
               id: r.ID,
               name: r.NAME,
-              price: r.PRICE,
+              price: Number(r.PRICE),
               description: r.DESCRIPTION,
               image: r.IMAGE,
               servings: r.SERVINGS
             });
           });
 
-          res.json({
-            categories: Object.keys(categories).map(k => ({
-              name: k,
-              items: categories[k]
-            }))
-          });
+          res.json({ categories: Object.values(map) });
         }
       });
     });
@@ -82,23 +97,24 @@ export default async function handler(req, res) {
   }
 
   // ===============================
-  // AUTH REQUIRED BELOW
-  // ===============================
-  try {
-    requireStaff(req);
-  } catch {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-
-  // ===============================
-  // ADD MENU
+  // POST ADD MENU (STAFF ONLY)
   // ===============================
   if (req.method === "POST") {
-    const form = formidable({ multiples: false });
+    try {
+      requireStaff(req);
+    } catch {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+
+    const form = formidable({
+      multiples: false,
+      maxFileSize: 5 * 1024 * 1024 // 5MB
+    });
 
     form.parse(req, async (err, fields, files) => {
       if (err) return res.status(400).json({ error: "Form parse failed" });
 
+      // FIELD EXTRACTION (FORMIDABLE v3 SAFE)
       const name = fields.name?.toString();
       const price = Number(fields.price);
       const servings = Number(fields.servings);
@@ -106,10 +122,14 @@ export default async function handler(req, res) {
       const description = fields.description?.toString() || "";
 
       if (!name || isNaN(price) || isNaN(servings)) {
-        return res.status(400).json({ error: "Invalid fields" });
+        return res.status(400).json({
+          error: "Invalid fields",
+          debug: { name, price, servings }
+        });
       }
 
-      let image = "default.png";
+      // IMAGE UPLOAD
+      let imageUrl = "default.png";
 
       if (files.image) {
         try {
@@ -117,13 +137,14 @@ export default async function handler(req, res) {
             files.image.filepath,
             { folder: "menu" }
           );
-          image = upload.secure_url;
+          imageUrl = upload.secure_url;
         } catch (e) {
-          console.error(e);
+          console.error("CLOUDINARY ERROR:", e);
           return res.status(500).json({ error: "Image upload failed" });
         }
       }
 
+      // INSERT DB
       const conn = db();
       conn.connect(err => {
         if (err) return res.status(500).json({ error: "DB connect failed" });
@@ -134,7 +155,14 @@ export default async function handler(req, res) {
             (name, price, category, description, image, servings)
             VALUES (?, ?, ?, ?, ?, ?)
           `,
-          binds: [name, price, category, description, image, servings],
+          binds: [
+            name,
+            price,
+            category,
+            description,
+            imageUrl,
+            servings
+          ],
           complete: err => {
             conn.destroy();
             if (err) return res.status(500).json({ error: err.message });
@@ -146,30 +174,5 @@ export default async function handler(req, res) {
     return;
   }
 
-  // ===============================
-  // DELETE MENU
-  // ===============================
-  if (req.method === "DELETE") {
-    let body = "";
-    req.on("data", chunk => (body += chunk));
-    req.on("end", () => {
-      const { id } = JSON.parse(body || "{}");
-      if (!id) return res.status(400).json({ error: "Missing id" });
-
-      const conn = db();
-      conn.connect(() => {
-        conn.execute({
-          sqlText: `DELETE FROM menu WHERE id = ?`,
-          binds: [id],
-          complete: () => {
-            conn.destroy();
-            res.json({ success: true });
-          }
-        });
-      });
-    });
-    return;
-  }
-
-  res.status(405).end();
+  res.status(405).json({ error: "Method not allowed" });
 }
