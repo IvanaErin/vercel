@@ -1,616 +1,158 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <title>BiteHub User Portal</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<style>
-/* ---- base ---- */
-body { margin:0; font-family: Arial, Helvetica, sans-serif; background:#f2ebff; color:#222; }
-
-/* NAVBAR */
-.navbar {
-    background: #7c4dff;
-    color: white;
-    padding: 12px 22px;
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
-}
-.nav-right { display:flex; gap:18px; align-items:center; }
-.nav-right a { color:white; text-decoration:none; font-size:15px; }
-
-/* BADGES */
-.cart-badge,
-.notif-badge {
-    background: red;
-    color: white;
-    padding: 2px 7px;
-    font-size: 12px;
-    border-radius: 50%;
-    margin-left: 6px;
-}
-.notif-badge { background: orange; }
-
-/* Page title */
-.page-title { text-align:center; color:#7c4dff; margin:20px 0 0 0; font-size:24px; }
-
-/* MENU CARDS */
-.menu-container {
-    margin: 30px auto;
-    width:90%;
-    display:grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap:22px;
-    padding-bottom:80px;
-}
-.card {
-    background:white; padding:14px; border-radius:12px; box-shadow: 0 4px 12px rgba(0,0,0,0.06);
-}
-.card img { width:100%; height:170px; object-fit:cover; border-radius:8px; }
-.card h3 { margin:12px 0 6px 0; }
-.card p { margin:6px 0; }
-.order-btn { width:100%; padding:10px; background:#7c4dff; color:white; border:0; border-radius:8px; cursor:pointer; }
-
-/* Small toast */
-#toast {
-    position: fixed;
-    bottom: 24px;
-    left: 50%;
-    transform: translateX(-50%);
-    background: #222;
-    color: #fff;
-    padding: 10px 14px;
-    border-radius: 8px;
-    display: none;
-    z-index: 999999;
-}
-
-/* ===========================
-   REVIEWS TAB (ALWAYS VISIBLE)
-=========================== */
-
-/* Reviews tab button */
-#reviews-tab {
-    position: fixed;
-    right: 0; /* ALWAYS stick to screen edge */
-    top: 50%;
-    transform: translateY(-50%);
-    background: #E9D7FF;
-    color: #4c2a66;
-    padding: 12px 14px;
-    writing-mode: vertical-rl;
-    text-orientation: mixed;
-    font-weight: 700;
-    border-radius: 8px 0 0 8px;
-    cursor: pointer;
-    box-shadow: -2px 2px 8px rgba(0,0,0,0.12);
-    z-index: 99999;
-    transition: opacity .3s ease;
-}
-
-/* Reviews panel */
-#reviews-panel {
-    position: fixed;
-    right: -360px; /* hidden */
-    top: 0;
-    height: 100vh;
-    width: 360px;
-    background: #fff;
-    box-shadow: -6px 0 20px rgba(0,0,0,0.12);
-    transition: right .36s ease;
-    z-index: 9999;
-    overflow-y: auto;
-    padding: 18px;
-}
-
-/* When panel is open */
-#reviews-panel.open { 
-    right: 0; 
-}
-
-/* ===========================
-   COMPRESSED REVIEW CARDS
-=========================== */
-
-.pending-list .pending-card,
-.recent-list .recent-card {
-    background:#fafafa;
-    border-radius:8px;
-    padding:6px 8px;
-    margin-bottom:8px;
-    border-left:3px solid #E9D7FF;
-    max-height:100px;      /* shrink card */
-    overflow:hidden;       /* prevent scroll */
-}
-
-.pending-card b,
-.recent-card b {
-    font-size:13px;
-    margin-bottom:3px;
-}
-
-/* Write review button */
-.write-btn { 
-    background:#7c4dff;
-    color:white;
-    border:0;
-    padding:6px 8px;
-    border-radius:6px;
-    cursor:pointer;
-    font-size:12px;
-}
-
-/* Muted text */
-.small-muted { 
-    font-size:11px !important;
-    color:#666;
-    margin-top:4px;
-}
-
-/* ===========================
-   REVIEW MODAL
-=========================== */
-
-#review-modal {
-    display:none;
-    position:fixed;
-    inset:0;
-    background:rgba(0,0,0,0.45);
-    z-index:10001;
-    justify-content:center;
-    align-items:center;
-}
-
-#review-modal .modal-box {
-    width:340px;
-    background:#fff;
-    padding:18px;
-    border-radius:10px;
-    box-shadow:0 8px 30px rgba(0,0,0,0.18);
-}
-
-#review-modal textarea {
-    height:250px;
-    resize:none;
-}
-    
-/* REVIEW PANEL FIX (ensure visible text) */
-#reviews-panel {
-    background: #fff;
-    color: #333;
-    padding: 20px;
-    width: 350px;
-    max-height: 100vh;
-    overflow-y: auto;
-    position: fixed;
-    right: -380px;
-    top: 0;
-    transition: 0.3s ease;
-    z-index: 9999;
-    box-shadow: -2px 0 10px rgba(0,0,0,0.1);
-}
-
-#reviews-panel.open {
-    right: 0;
-}
-
-.pending-card, .recent-card {
-    background: #faf7ff;
-    border: 1px solid #e4d7ff;
-    padding: 12px;
-    border-radius: 10px;
-    margin-bottom: 12px;
-    color: #333; /* FIX INVISIBLE TEXT */
-}
-
-.pending-card b,
-.recent-card b,
-.pending-card p,
-.recent-card p,
-.pending-card small,
-.recent-card small {
-    color: #333 !important; /* FORCE VISIBLE TEXT */
-}
-
-.small-muted {
-    color: #777 !important;
-}
-
-/* AI Widget */
-#ai-btn {
-    position: fixed;
-    bottom: 30px;
-    right: 30px;
-    width: 65px;
-    height: 65px;
-    background: #7c4dff;
-    color: white;
-    border-radius: 50%;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    cursor:pointer;
-    font-size:28px;
-    z-index:99999;
-    box-shadow:0 4px 10px rgba(0,0,0,0.25);
-}
-#ai-chatbox {
-    position: fixed;
-    bottom: 110px;
-    right: 30px;
-    width: 320px;
-    height: 420px;
-    background:white;
-    border-radius:12px;
-    box-shadow:0 4px 14px rgba(0,0,0,0.25);
-    display:none;
-    flex-direction:column;
-    z-index:99998;
-}
-#ai-header {
-    background:#7c4dff;
-    padding:10px;
-    border-radius:12px 12px 0 0;
-    color:white;
-    font-weight:bold;
-    text-align:center;
-}
-#ai-messages {
-    flex:1;
-    padding:10px;
-    overflow-y:auto;
-    font-size:14px;
-}
-#ai-input-area {
-    padding:10px;
-    display:flex;
-    gap:6px;
-}
-#ai-input {
-    flex:1; padding:8px;
-    border-radius:6px; border:1px solid #ccc;
-}
-#ai-send {
-    background:#7c4dff;
-    color:white;
-    border:0;
-    padding:8px 14px;
-    border-radius:6px;
-    cursor:pointer;
-}
-#ai-chatbox.open {
-    display: flex !important;
-}
-
-
-/* Ensure notif badge visible in navbar */
-.nav-right .notif-link { display:inline-flex; align-items:center; gap:6px; color:white; text-decoration:none; font-size:18px; }
-.nav-right .notif-link .notif-badge { margin-left:6px; }
-
-/* responsive */
-@media (max-width:600px){
-    .menu-container { width:95%; gap:12px; }
-    .card img { height:140px; }
-    .navbar { padding:10px; }
-    .nav-right { gap:10px; font-size:14px; }
-}
-</style>
+<link rel="stylesheet" href="user.css">
 </head>
+
 <body>
 
 <!-- NAVBAR -->
 <div class="navbar">
-    <div><b>Welcome,  👋</b></div>
+  <div><b>Welcome 👋</b></div>
 
-    <div class="nav-right">
-
-        <a href="cart.html">
-            🛒 Cart <span class="cart-badge"></span>
-        </a>
-
-        <!-- SIMPLE Notification link (OLD STYLE, no dropdown) -->
-        <a href="notifications.html" class="notif-link">
-            🔔
-            
-                <span class="notif-badge"></span>
-            
-        </a>
-
-        <a href="recent_orders.html">📄 Recent Orders</a>
-        <a href="logout.html">Logout</a>
-    </div>
+  <div class="nav-right">
+    <a href="cart.html">🛒 Cart <span class="cart-badge">0</span></a>
+    <a href="notifications.html" class="notif-link">🔔 <span class="notif-badge">0</span></a>
+    <a href="recent_orders.html">📄 Recent Orders</a>
+    <a href="logout.html">Logout</a>
+  </div>
 </div>
 
 <h2 class="page-title">🍽️ Today’s Menu</h2>
 
-<div class="menu-container">
+<!-- MENU -->
+<div class="menu-container" id="menu"></div>
 
-    <div class="card">
-        <img src="" alt="Food">
-        <h3></h3>
-        <p><b>₱</b></p>
-        <p></p>
-
-        
-            <div style="background:#ff3b30;color:#fff;padding:10px;border-radius:8px;font-weight:bold;text-align:center;margin-top:10px;">
-                SOLD OUT
-            </div>
-        
-            <!-- AJAX Add to cart button -->
-            <button class="order-btn" onclick="addToCart(, this)">Add to Cart</button>
-        
-    </div>
-
-</div>
-
-<!-- Reviews tab -->
-<div id="reviews-tab" onclick="toggleReviewsPanel()">Reviews</div>
-
-<!-- Slide panel -->
-<div id="reviews-panel">
-    <h2 style="margin-top:0;">Reviews</h2>
-
-    <h3 style="margin-bottom:10px; color:#6b2f88;">Pending Reviews ()</h3>
-    <div class="pending-list">
-        
-                <div class="pending-card">
-                    <b></b>
-                    <div class="small-muted">Qty: </div>
-                    <div class="small-muted">₱</div>
-
-                    <button class="write-btn" onclick="openReviewModal(, '')">
-                        ⭐ Write Review
-                    </button>
-                </div>
-        
-    </div>
-
-    <hr style="border:none;border-top:1px solid #eee;margin:14px 0;">
-
-    <h3 style="margin-bottom:10px; color:#6b2f88;">Recent Reviews</h3>
-    <div class="recent-list">
-        
-            <div class="recent-card">
-                <b></b>
-                <div class="small-muted"></div>
-                <p></p>
-                <small class="small-muted"></small>
-            </div>
-        
-    </div>
-</div>
-
-<!-- Review modal -->
-<div id="review-modal">
-    <div class="modal-box">
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-            <strong id="modal-title">Review item</strong>
-            <button onclick="closeReviewModal()" style="background:#eee;border:0;padding:6px;border-radius:6px;cursor:pointer;">X</button>
-        </div>
-
-        <form id="modal-form" action="save_review.html" method="POST" style="margin-top:10px;">
-            <input type="hidden" name="order_item_id" id="order_item_id_input">
-
-            <label>Rating</label>
-            <select name="rating" required>
-                <option value="5">⭐⭐⭐⭐⭐ (5)</option>
-                <option value="4">⭐⭐⭐⭐ (4)</option>
-                <option value="3">⭐⭐⭐ (3)</option>
-                <option value="2">⭐⭐ (2)</option>
-                <option value="1">⭐ (1)</option>
-            </select>
-
-            <label>Comment</label>
-            <textarea name="comment" required></textarea>
-
-            <button type="submit" style="margin-top:10px;background:#7c4dff;color:white;border:0;padding:10px;border-radius:8px;cursor:pointer;width:100%;">
-                Submit Review
-            </button>
-        </form>
-    </div>
-</div>
-
-<!-- AI WIDGET -->
-<div id="ai-btn">🤖</div>
-<div id="ai-chatbox">
-    <div id="ai-header">BiteHub AI Assistant</div>
-    <div id="ai-messages"></div>
-    <div id="ai-input-area">
-        <input type="text" id="ai-input" placeholder="Ask something...">
-        <button id="ai-send">Send</button>
-    </div>
-</div>
-
-<!-- Toast -->
+<!-- TOAST -->
 <div id="toast"></div>
 
+<!-- AI -->
+<div id="ai-btn">🤖</div>
+<div id="ai-chatbox">
+  <div id="ai-header">BiteHub AI Assistant</div>
+  <div id="ai-messages"></div>
+  <div id="ai-input-area">
+    <input id="ai-input" placeholder="Ask something…">
+    <button id="ai-send">Send</button>
+  </div>
+</div>
+
 <script>
-/* ============================
-   REVIEW PANEL
-============================ */
-function toggleReviewsPanel() {
-    document.getElementById('reviews-panel').classList.toggle('open');
-}
-function openReviewModal(id, name) {
-    document.getElementById('order_item_id_input').value = id;
-    document.getElementById('modal-title').innerText = 'Review: ' + name;
-    document.getElementById('review-modal').style.display = 'flex';
-}
-function closeReviewModal() {
-    document.getElementById('review-modal').style.display = 'none';
-}
+/* =====================
+   LOAD MENU
+===================== */
+fetch('/api/get_menu')
+  .then(r => r.json())
+  .then(data => {
+    const menu = document.getElementById('menu');
+    menu.innerHTML = '';
 
-/* ============================
-   AI CHAT WIDGET
-============================ */
-const aiBtn = document.getElementById("ai-btn");
-const aiBox = document.getElementById("ai-chatbox");
-const aiMessages = document.getElementById("ai-messages");
-const aiInput = document.getElementById("ai-input");
-const aiSend = document.getElementById("ai-send");
-
-/* ============================
-   OPEN / CLOSE LOGIC + DRAG
-============================ */
-let isDragging = false;
-let dragStartX, dragStartY, offsetX, offsetY;
-
-aiBtn.addEventListener("mousedown", (e) => {
-    isDragging = false;
-    dragStartX = e.clientX;
-    dragStartY = e.clientY;
-
-    offsetX = e.clientX - aiBtn.offsetLeft;
-    offsetY = e.clientY - aiBtn.offsetTop;
-
-    document.addEventListener("mousemove", dragMove);
-    document.addEventListener("mouseup", dragEnd);
-});
-
-function dragMove(e) {
-    if (Math.abs(e.clientX - dragStartX) > 5 || Math.abs(e.clientY - dragStartY) > 5) {
-        isDragging = true;
-    }
-
-    if (isDragging) {
-        aiBtn.style.left = (e.clientX - offsetX) + "px";
-        aiBtn.style.top = (e.clientY - offsetY) + "px";
-        aiBtn.style.right = "unset";
-        aiBtn.style.bottom = "unset";
-    }
-}
-
-function dragEnd() {
-    document.removeEventListener("mousemove", dragMove);
-    document.removeEventListener("mouseup", dragEnd);
-
-    if (!isDragging) {
-        aiBox.classList.toggle("open");
-    }
-}
-
-/* ============================
-   SEND MESSAGE
-============================ */
-aiSend.addEventListener("click", sendAIMessage);
-
-aiInput.addEventListener("keypress", e => {
-    if (e.key === "Enter") sendAIMessage();
-});
-
-function sendAIMessage() {
-    let text = aiInput.value.trim();
-    if (!text) return;
-
-    appendMessage("You", text);
-    aiInput.value = "";
-
-    // Show typing placeholder
-    appendMessage("AI", "<i>Typing...</i>");
-
-    fetch("test_curl.html", {
-        method: "POST",
-        headers: {"Content-Type": "application/json"},
-        body: JSON.stringify({ message: text })
-    })
-    .then(res => res.json())
-    .then(data => {
-        // Remove typing message
-        aiMessages.lastElementChild.remove();
-
-        // FIX: Groq PHP returns { reply: "..." }
-        if (data.reply) {
-            appendMessage("AI", data.reply);
-        } else {
-            appendMessage("AI", "⚠️ Invalid AI response.");
-        }
-    })
-    .catch(() => {
-        aiMessages.lastElementChild.remove();
-        appendMessage("AI", "⚠️ Error connecting to AI.");
+    data.menu.forEach(item => {
+      menu.innerHTML += `
+        <div class="card">
+          <img src="${item.image || ''}">
+          <h3>${item.name}</h3>
+          <p><b>₱${item.price}</b></p>
+          <button class="order-btn" onclick="addToCart(${item.id}, this)">
+            Add to Cart
+          </button>
+        </div>
+      `;
     });
-}
+  });
 
-function appendMessage(sender, msg) {
-    const p = document.createElement("p");
-    p.innerHTML = `<b>${sender}:</b> ${msg}`;
-    aiMessages.appendChild(p);
-    aiMessages.scrollTop = aiMessages.scrollHeight;
-}
-
-/* ============================
-   AUTO REFRESH NOTIF & CART
-============================ */
-function loadNotif() {
-    fetch("fetch_notifications.html?ts=" + Date.now())
-        .then(r => r.text())
-        .then(num => {
-            const el = document.querySelector(".notif-badge");
-            if (el) el.innerText = num;
-        });
-}
-
-function loadCart() {
-    fetch("fetch_cart_count.html")
-        .then(r => r.text())
-        .then(num => {
-            const el = document.querySelector(".cart-badge");
-            if (el) el.innerText = num;
-        });
-}
-
-/* ============================
+/* =====================
    ADD TO CART
-============================ */
-function showToast(msg) {
-    const t = document.getElementById('toast');
-    t.innerText = msg;
-    t.style.display = 'block';
-    setTimeout(() => t.style.display = 'none', 2000);
-}
-
+===================== */
 function addToCart(menu_id, btn) {
-    btn.disabled = true;
-    btn.innerText = 'Adding...';
+  btn.disabled = true;
+  btn.innerText = 'Adding...';
 
-    fetch("add_to_cart.html", {
-        method: "POST",
-        headers: {"Content-Type": "application/x-www-form-urlencoded"},
-        body: "menu_id=" + encodeURIComponent(menu_id) + "&quantity=1"
-    })
-    .then(r => r.text())
-    .then(resp => {
-        resp = resp.trim().toLowerCase();
-        if (resp.startsWith("success")) {
-            showToast("Added to cart");
-            loadCart();
-        } else if (resp === "not_logged_in") {
-            alert("Please login first.");
-        } else {
-            alert("Server: " + resp);
-        }
-    })
-    .catch(() => alert("Network error."))
-    .finally(() => {
-        btn.disabled = false;
-        btn.innerText = 'Add to Cart';
-    });
+  fetch('/api/add_to_cart', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ menu_id, quantity: 1 })
+  })
+  .then(r => r.json())
+  .then(() => {
+    showToast('Added to cart');
+    loadCart();
+  })
+  .catch(() => alert('Error'))
+  .finally(() => {
+    btn.disabled = false;
+    btn.innerText = 'Add to Cart';
+  });
 }
 
-/* ============================
-   INITIAL LOAD
-============================ */
-loadNotif();
-loadCart();
-setInterval(() => {
-    loadNotif();
-    loadCart();
-}, 30000);
+/* =====================
+   COUNTERS
+===================== */
+function loadCart() {
+  fetch('/api/fetch_cart_count')
+    .then(r => r.json())
+    .then(d => document.querySelector('.cart-badge').innerText = d.count || 0);
+}
 
+function loadNotif() {
+  fetch('/api/fetch_notifications')
+    .then(r => r.json())
+    .then(d => document.querySelector('.notif-badge').innerText = d.notifications.length);
+}
+
+/* =====================
+   TOAST
+===================== */
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.innerText = msg;
+  t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 2000);
+}
+
+/* =====================
+   AI CHAT
+===================== */
+document.getElementById('ai-btn').onclick = () =>
+  document.getElementById('ai-chatbox').classList.toggle('open');
+
+document.getElementById('ai-send').onclick = sendAI;
+
+function sendAI() {
+  const input = document.getElementById('ai-input');
+  const msg = input.value.trim();
+  if (!msg) return;
+
+  append('You', msg);
+  input.value = '';
+
+  fetch('/api/test_curl', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ message: msg })
+  })
+  .then(r => r.json())
+  .then(d => append('AI', d.reply || 'No reply'));
+}
+
+function append(who, text) {
+  const p = document.createElement('p');
+  p.innerHTML = `<b>${who}:</b> ${text}`;
+  document.getElementById('ai-messages').appendChild(p);
+}
+
+/* INIT */
+loadCart();
+loadNotif();
+setInterval(() => {
+  loadCart();
+  loadNotif();
+}, 30000);
 </script>
 
 </body>
 </html>
+
