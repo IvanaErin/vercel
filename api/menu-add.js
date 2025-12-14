@@ -12,58 +12,74 @@ cloudinary.v2.config({
 });
 
 export default async function handler(req, res) {
+  if (req.method !== "POST") return res.status(405).end();
+
+  // ✅ AUTH
+  const token = req.headers.authorization?.replace("Bearer ", "");
+  if (!token) return res.status(401).json({ error: "No token" });
+
+  let staff;
   try {
-    const token = req.headers.authorization?.replace("Bearer ", "");
-    if (!token) return res.status(401).end();
+    staff = jwt.verify(token, process.env.JWT_SECRET);
+    if (staff.role !== "staff")
+      return res.status(403).json({ error: "Forbidden" });
+  } catch {
+    return res.status(401).json({ error: "Invalid token" });
+  }
 
-    jwt.verify(token, process.env.JWT_SECRET);
+  // ✅ FORM DATA
+  const form = formidable({ multiples: false });
 
-    const form = formidable({ keepExtensions: true });
+  form.parse(req, async (err, fields, files) => {
+    if (err) return res.status(400).json({ error: "Form error" });
 
-    form.parse(req, async (err, fields, files) => {
-      if (err) return res.status(400).json({ error: "Form parse error" });
+    const { name, price, category, description } = fields;
+    const imageFile = files.image;
 
-      const { name, price, category, description } = fields;
-      const imageFile = files.image;
+    if (!name || !price)
+      return res.status(400).json({ error: "Missing fields" });
 
-      if (!imageFile) {
-        return res.status(400).json({ error: "Image required" });
-      }
+    // ✅ UPLOAD IMAGE
+    let imageUrl = "default.png";
 
-      // 🔥 UPLOAD IMAGE
+    if (imageFile) {
       const upload = await cloudinary.v2.uploader.upload(
         imageFile.filepath,
         { folder: "menu" }
       );
+      imageUrl = upload.secure_url;
+    }
 
-      const imageUrl = upload.secure_url;
+    // ✅ INSERT INTO SNOWFLAKE
+    const conn = snowflake.createConnection({
+      account: process.env.SNOWFLAKE_ACCOUNT,
+      username: process.env.SNOWFLAKE_USERNAME,
+      password: process.env.SNOWFLAKE_PASSWORD,
+      warehouse: process.env.SNOWFLAKE_WAREHOUSE,
+      database: process.env.SNOWFLAKE_DATABASE,
+      schema: process.env.SNOWFLAKE_SCHEMA
+    });
 
-      // 🔥 INSERT INTO SNOWFLAKE
-      const conn = snowflake.createConnection({
-        account: process.env.SNOWFLAKE_ACCOUNT,
-        username: process.env.SNOWFLAKE_USERNAME,
-        password: process.env.SNOWFLAKE_PASSWORD,
-        warehouse: process.env.SNOWFLAKE_WAREHOUSE,
-        database: process.env.SNOWFLAKE_DATABASE,
-        schema: process.env.SNOWFLAKE_SCHEMA
-      });
+    conn.connect(err => {
+      if (err) return res.status(500).json({ error: "DB connect failed" });
 
-      conn.connect(() => {
-        conn.execute({
-          sqlText: `
-            INSERT INTO menu (name, price, category, description, image)
-            VALUES (?, ?, ?, ?, ?)
-          `,
-          binds: [name, price, category, description, imageUrl],
-          complete: () => {
-            conn.destroy();
-            res.json({ success: true });
-          }
-        });
+      conn.execute({
+        sqlText: `
+          INSERT INTO menu (name, price, category, description, image)
+          VALUES (?, ?, ?, ?, ?)
+        `,
+        binds: [
+          name,
+          Number(price),
+          category || "others",
+          description || "",
+          imageUrl
+        ],
+        complete: () => {
+          conn.destroy();
+          res.json({ success: true });
+        }
       });
     });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: "Server error" });
-  }
+  });
 }
