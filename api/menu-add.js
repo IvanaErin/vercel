@@ -14,7 +14,6 @@ cloudinary.v2.config({
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
 
-  // ✅ AUTH
   const token = req.headers.authorization?.replace("Bearer ", "");
   if (!token) return res.status(401).json({ error: "No token" });
 
@@ -27,30 +26,33 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: "Invalid token" });
   }
 
-  // ✅ FORM DATA
   const form = formidable({ multiples: false });
 
   form.parse(req, async (err, fields, files) => {
     if (err) return res.status(400).json({ error: "Form error" });
 
-    const { name, price, category, description } = fields;
-    const imageFile = files.image;
+    const name = fields.name?.[0];
+    const price = fields.price?.[0];
+    const category = fields.category?.[0] || "others";
+    const description = fields.description?.[0] || "";
 
     if (!name || !price)
       return res.status(400).json({ error: "Missing fields" });
 
-    // ✅ UPLOAD IMAGE
     let imageUrl = "default.png";
 
-    if (imageFile) {
-      const upload = await cloudinary.v2.uploader.upload(
-        imageFile.filepath,
-        { folder: "menu" }
-      );
-      imageUrl = upload.secure_url;
+    if (files.image) {
+      try {
+        const upload = await cloudinary.v2.uploader.upload(
+          files.image.filepath,
+          { folder: "menu" }
+        );
+        imageUrl = upload.secure_url;
+      } catch {
+        return res.status(500).json({ error: "Image upload failed" });
+      }
     }
 
-    // ✅ INSERT INTO SNOWFLAKE
     const conn = snowflake.createConnection({
       account: process.env.SNOWFLAKE_ACCOUNT,
       username: process.env.SNOWFLAKE_USERNAME,
@@ -61,22 +63,23 @@ export default async function handler(req, res) {
     });
 
     conn.connect(err => {
-      if (err) return res.status(500).json({ error: "DB connect failed" });
+      if (err)
+        return res.status(500).json({ error: "DB connect failed" });
 
       conn.execute({
         sqlText: `
           INSERT INTO menu (name, price, category, description, image)
           VALUES (?, ?, ?, ?, ?)
         `,
-        binds: [
-          name,
-          Number(price),
-          category || "others",
-          description || "",
-          imageUrl
-        ],
-        complete: () => {
+        binds: [name, Number(price), category, description, imageUrl],
+        complete: (err) => {
           conn.destroy();
+
+          if (err) {
+            console.error(err);
+            return res.status(500).json({ error: err.message });
+          }
+
           res.json({ success: true });
         }
       });
