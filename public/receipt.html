@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Receipt</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<style>
+body {
+  background:#f4f4f4;
+  font-family: monospace;
+  padding:30px;
+}
+
+.receipt {
+  background:#fff;
+  width:320px;
+  margin:auto;
+  padding:20px;
+  border:1px dashed #000;
+}
+
+.center { text-align:center; }
+
+hr {
+  border:none;
+  border-top:1px dashed #000;
+  margin:10px 0;
+}
+
+.row {
+  display:flex;
+  justify-content:space-between;
+}
+
+.small { font-size:13px; }
+.bold { font-weight:bold; }
+
+.back {
+  display:block;
+  margin:15px auto;
+  text-align:center;
+  text-decoration:none;
+  color:#6a5acd;
+  font-weight:bold;
+}
+</style>
+</head>
+
+<body>
+
+<div class="receipt" id="receipt">
+  <div class="center bold">BiteHub / Nemsy Main Tandag</div>
+  <div class="center small">
+    Rosario, Tandag City, 8300 Surigao del Sur<br>
+    Philippines
+  </div>
+
+  <br>
+  <div class="center bold">** COPY RECEIPT **</div>
+
+  <br>
+  <div id="receiptBody">Loading...</div>
+
+  <hr>
+
+  <div class="center bold">THANK YOU FOR YOUR ORDER!</div>
+</div>
+
+<a class="back" href="/orders.html">← Back to Orders</a>
+
+<script>
+const token = localStorage.getItem("token");
+if (!token) location.href = "/login.html";
+
+const params = new URLSearchParams(location.search);
+const order_id = params.get("order_id");
+
+fetch(`/api/receipt?order_id=${order_id}`, {
+  headers: { Authorization: "Bearer " + token }
+})
+.then(r => r.json())
+.then(data => {
+  if (!data.success) throw "error";
+
+  const o = data.order;
+  let html = `
+    CUSTOMER : ${o.customer}<br><br>
+  `;
+
+  o.items.forEach(i => {
+    html += `
+      <div class="row">
+        <span>${i.quantity} x ${i.name}</span>
+        <span>₱${i.price.toFixed(2)}</span>
+      </div>
+    `;
+  });
+
+  html += `
+    <hr>
+    <div class="row bold">
+      <span>TOTAL</span>
+      <span>₱${o.total.toFixed(2)}</span>
+    </div>
+    <br>
+    CASH&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;₱${o.total.toFixed(2)}<br><br>
+    ${o.date}<span style="float:right">${o.time}</span><br><br>
+    REF: ${o.ref}
+    <br><br>
+    <div class="center bold">** COPY RECEIPT **</div>
+  `;
+
+  document.getElementById("receiptBody").innerHTML = html;
+})
+.catch(() => {
+  document.getElementById("receiptBody").innerHTML = "Receipt not found.";
+});
+</script>
+
+</body>
+</html>
