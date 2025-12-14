@@ -5,14 +5,15 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
+  const { username, email, password } = req.body;
+
+  if (!username || !email || !password) {
+    return res.status(400).json({ error: "Missing fields" });
+  }
+
   try {
-    const { username, email, password } = req.body;
-
-    if (!username || !email || !password) {
-      return res.status(400).json({ error: "Missing fields" });
-    }
-
-    const hash = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const safeEmail = email.toLowerCase();
 
     const sql = `
       INSERT INTO ${process.env.SNOWFLAKE_DATABASE}.${process.env.SNOWFLAKE_SCHEMA}.users
@@ -25,15 +26,20 @@ export default async function handler(req, res) {
       {
         method: "POST",
         headers: {
-          "Authorization": "Basic " + Buffer.from(
-            `${process.env.SNOWFLAKE_USERNAME}:${process.env.SNOWFLAKE_PASSWORD}`
-          ).toString("base64"),
-          "Content-Type": "application/json",
-          "X-Snowflake-Authorization-Token-Type": "KEYPAIR_JWT"
+          Authorization:
+            "Basic " +
+            Buffer.from(
+              `${process.env.SNOWFLAKE_USER}:${process.env.SNOWFLAKE_PASSWORD}`
+            ).toString("base64"),
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({
           statement: sql,
-          binds: [username, email, hash],
+          bindings: {
+            1: { type: "TEXT", value: username },
+            2: { type: "TEXT", value: safeEmail },
+            3: { type: "TEXT", value: hashedPassword }
+          },
           warehouse: process.env.SNOWFLAKE_WAREHOUSE,
           role: process.env.SNOWFLAKE_ROLE
         })
@@ -42,15 +48,19 @@ export default async function handler(req, res) {
 
     const data = await response.json();
 
+    // 🔴 SHOW REAL ERROR
     if (!response.ok) {
-      console.error(data);
-      return res.status(500).json({ error: "User already exists" });
+      console.error("Snowflake error:", data);
+      return res.status(500).json({
+        error: data.message || "Database error",
+        code: data.code
+      });
     }
 
     return res.json({ success: true });
 
   } catch (err) {
-    console.error(err);
-    return res.status(500).json({ error: "Server error" });
+    console.error("Server crash:", err);
+    return res.status(500).json({ error: "Server crashed" });
   }
 }
