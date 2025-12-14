@@ -33,7 +33,7 @@ export default async function handler(req, res) {
   }
 
   // -------- FORM DATA --------
-  const form = formidable({ multiples: false });
+  const form = formidable({ keepExtensions: true });
 
   form.parse(req, async (err, fields, files) => {
     if (err) {
@@ -41,14 +41,15 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Form parse error" });
     }
 
-    const name = fields.name?.[0];
-    const price = Number(fields.price?.[0]);
-    const category = fields.category?.[0] || "others";
-    const description = fields.description?.[0] || "";
-    const servings = Number(fields.servings?.[0]);
+    // ✅ CORRECT FIELD ACCESS
+    const name = fields.name;
+    const price = Number(fields.price);
+    const category = fields.category || "others";
+    const description = fields.description || "";
+    const servings = Number(fields.servings ?? 0);
 
-    if (!name || isNaN(price) || isNaN(servings)) {
-      return res.status(400).json({ error: "Invalid or missing fields" });
+    if (!name || isNaN(price)) {
+      return res.status(400).json({ error: "Missing or invalid name/price" });
     }
 
     if (servings < 0) {
@@ -90,8 +91,8 @@ export default async function handler(req, res) {
       conn.execute({
         sqlText: `
           INSERT INTO menu
-          (name, price, category, description, image, servings, is_available)
-          VALUES (?, ?, ?, ?, ?, ?, ?)
+            (name, price, category, description, image, servings)
+          VALUES (?, ?, ?, ?, ?, ?)
         `,
         binds: [
           name,
@@ -99,8 +100,7 @@ export default async function handler(req, res) {
           category,
           description,
           imageUrl,
-          servings,
-          servings > 0
+          servings
         ],
         complete: (err) => {
           conn.destroy();
