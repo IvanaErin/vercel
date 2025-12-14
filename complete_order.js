@@ -1,32 +1,101 @@
-import { getPool } from '../lib/db';
-import { sendNotification } from '../lib/notify';
+import snowflake from "snowflake-sdk";
 
-export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+function getConnection() {
+  return snowflake.createConnection({
+    account: process.env.SNOWFLAKE_ACCOUNT,
+    username: process.env.SNOWFLAKE_USERNAME,
+    password: process.env.SNOWFLAKE_PASSWORD,
+    database: process.env.SNOWFLAKE_DATABASE,
+    schema: process.env.SNOWFLAKE_SCHEMA,
+    warehouse: process.env.SNOWFLAKE_WAREHOUSE,
+    role: process.env.SNOWFLAKE_ROLE,
+  });
+}
 
-  const cookie = req.headers.cookie || '';
+export default function handler(req, res) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  // 🔐 Staff auth
+  const cookie = req.headers.cookie || "";
   const match = cookie.match(/(?:^|;)\s*staff_id=(\d+)/);
   const staff_id = match ? Number(match[1]) : null;
-  if (!staff_id) return res.status(401).json({ error: 'Not authenticated' });
+
+  if (!staff_id) {
+    return res.status(401).json({ error: "Not authenticated" });
+  }
 
   const { order_id } = req.body;
-  const orderId = Number(order_id || 0);
-  if (!orderId) return res.status(400).json({ error: 'Invalid order id' });
+  const orderId = Number(order_id);
 
-  const pool = getPool();
-  try {
-    const [rows] = await pool.execute('SELECT user_id FROM orders WHERE id = ?', [orderId]);
-    if (!rows || rows.length === 0) return res.status(404).json({ error: 'Order not found' });
-    const user_id = rows[0].user_id;
-
-    await pool.execute("UPDATE orders SET status = 'Completed' WHERE id = ?", [orderId]);
-
-    const message = `Your order #${orderId} is marked as completed. Thank you!`;
-    await sendNotification({ receiver_id: user_id, message, receiver_role: 'user', sender_role: 'staff', user_id });
-
-    return res.json({ success: true });
-  } catch (err) {
-    console.error(err);
-    return res.status(500).json({ error: 'Server error' });
+  if (!orderId) {
+    return res.status(400).json({ error: "Invalid order id" });
   }
+
+  const conn = getConnection();
+
+  conn.connect((err) => {
+    if (err) {
+      console.error(err);
+      return res.status(500).json({ error: "Snowflake connection failed" });
+    }
+
+    // 1️⃣ Get order owner
+    conn.execute({
+      sqlText: `
+        SELECT user_id
+        FROM orders
+        WHERE id = ?
+      `,
+      binds: [orderId],
+      complete: (err, stmt, rows) => {
+        if (err || rows.length === 0) {
+          conn.destroy();
+          return res.status(404).json({ error: "Order not found" });
+        }
+
+        const userId = rows[0].USER_ID;
+
+        // 2️⃣ Update order status → Completed
+        conn.execute({
+          sqlText: `
+            UPDATE orders
+            SET status = 'Completed'
+            WHERE id = ?
+          `,
+          binds: [orderId],
+          complete: (err) => {
+            if (err) {
+              conn.destroy();
+              return res.status(500).json({ error: "Failed to complete order" });
+            }
+
+            // 3️⃣ Notify user
+            conn.execute({
+              sqlText: `
+                INSERT INTO notifications
+                  (user_id, receiver_id, message, receiver_role, sender_role)
+                VALUES (?, ?, ?, 'user', 'staff')
+              `,
+              binds: [
+                userId,
+                userId,
+                `Your order #${orderId} is marked as completed. Thank you!`,
+              ],
+              complete: (err) => {
+                conn.destroy();
+
+                if (err) {
+                  return res.status(500).json({ error: "Failed to notify user" });
+                }
+
+                return res.json({ success: true });
+              },
+            });
+          },
+        });
+      },
+    });
+  });
 }
