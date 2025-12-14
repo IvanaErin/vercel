@@ -50,15 +50,23 @@ body { background:var(--muted); }
 
 <body>
 
+<!-- SIDEBAR -->
+
 <div class="sidebar">
   <h4 class="px-3" style="color:var(--accent)">Staff Portal</h4>
   <a class="active">Dashboard</a>
   <a href="/menu_management.html">Menu Management</a>
-  <a href="/orders.html">Orders <span class="badge" id="pendingBadge"></span></a>
-  <a href="/notifications.html">Notifications <span class="badge" id="notifBadge"></span></a>
+  <a href="/orders.html">
+    Orders <span class="badge d-none" id="pendingBadge"></span>
+  </a>
+  <a href="/notifications.html">
+    Notifications <span class="badge d-none" id="notifBadge"></span>
+  </a>
   <a href="/sales.html">Sales Overview</a>
-  <a href="/login.html" onclick="logout()">Logout</a>
+  <a href="#" onclick="logout(event)">Logout</a>
 </div>
+
+<!-- MAIN -->
 
 <div class="main">
   <div class="text-end mb-3">
@@ -88,7 +96,7 @@ body { background:var(--muted); }
     </div>
   </div>
 
-  <!-- ORDERS -->
+  <!-- RECENT ORDERS -->
 
   <div class="card">
     <div class="card-header"><b>Recent Orders</b></div>
@@ -96,50 +104,94 @@ body { background:var(--muted); }
       <table class="table table-striped">
         <thead>
           <tr>
-            <th>#</th><th>Customer</th><th>Total</th><th>Status</th><th>Action</th>
+            <th>#</th>
+            <th>Customer</th>
+            <th>Total</th>
+            <th>Status</th>
+            <th>Action</th>
           </tr>
         </thead>
-        <tbody id="ordersTable"></tbody>
+        <tbody id="ordersTable">
+          <tr><td colspan="5">Loading...</td></tr>
+        </tbody>
       </table>
     </div>
   </div>
 </div>
 
 <script>
+/* ---------------- AUTH GUARD ---------------- */
 const token = localStorage.getItem("staff_token");
-if (!token) location.href = "/login.html";
-
-function logout(){
-  localStorage.removeItem("staff_token");
+if (!token) {
+  location.href = "/staff_login.html";
 }
 
+/* ---------------- LOGOUT ---------------- */
+function logout(e){
+  e.preventDefault();
+  localStorage.removeItem("staff_token");
+  localStorage.removeItem("staff_role");
+  location.href = "/staff_login.html";
+}
+
+/* ---------------- FETCH DASHBOARD ---------------- */
 fetch("/api/staff-dashboard", {
-  headers:{ Authorization:"Bearer "+token }
+  headers:{ Authorization:"Bearer " + token }
 })
-.then(r=>r.json())
-.then(d=>{
-  staffName.textContent = d.staff.username;
-  totalSales.textContent = "₱"+d.stats.total_sales.toFixed(2);
-  pendingOrders.textContent = d.stats.pending;
-  completedToday.textContent = d.stats.completed_today;
+.then(res => {
+  if (!res.ok) throw new Error("Unauthorized");
+  return res.json();
+})
+.then(d => {
+  // Staff
+  document.getElementById("staffName").textContent = d.staff.username;
 
-  pendingBadge.textContent = d.stats.pending || "";
-  notifBadge.textContent = d.stats.notifications || "";
+  // Stats
+  document.getElementById("totalSales").textContent =
+    "₱" + Number(d.stats.total_sales || 0).toFixed(2);
 
-  ordersTable.innerHTML = d.orders.map(o=>`
-    <tr>
-      <td>${o.id}</td>
-      <td>${o.customer}</td>
-      <td>₱${o.total.toFixed(2)}</td>
-      <td>${o.status}</td>
-      <td>
-        <a class="btn btn-sm btn-secondary" href="/receipt.html?order_id=${o.id}" target="_blank">Receipt</a>
-      </td>
-    </tr>
-  `).join("");
+  document.getElementById("pendingOrders").textContent =
+    d.stats.pending || 0;
+
+  document.getElementById("completedToday").textContent =
+    d.stats.completed_today || 0;
+
+  // Badges
+  if (d.stats.pending > 0) {
+    pendingBadge.textContent = d.stats.pending;
+    pendingBadge.classList.remove("d-none");
+  }
+
+  if (d.stats.notifications > 0) {
+    notifBadge.textContent = d.stats.notifications;
+    notifBadge.classList.remove("d-none");
+  }
+
+  // Orders
+  ordersTable.innerHTML = d.orders.length
+    ? d.orders.map(o => `
+      <tr>
+        <td>${o.id}</td>
+        <td>${o.customer}</td>
+        <td>₱${Number(o.total).toFixed(2)}</td>
+        <td>${o.status}</td>
+        <td>
+          <a class="btn btn-sm btn-secondary"
+             href="/receipt.html?order_id=${o.id}"
+             target="_blank">
+             Receipt
+          </a>
+        </td>
+      </tr>
+    `).join("")
+    : `<tr><td colspan="5">No orders found</td></tr>`;
+})
+.catch(err => {
+  console.error(err);
+  localStorage.removeItem("staff_token");
+  location.href = "/staff_login.html";
 });
 </script>
 
 </body>
 </html>
-
