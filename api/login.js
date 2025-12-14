@@ -1,5 +1,6 @@
 import snowflake from "snowflake-sdk";
 import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 
 function connectSnowflake() {
   return new Promise((resolve, reject) => {
@@ -36,7 +37,6 @@ export default async function handler(req, res) {
   }
 
   const { email, password } = req.body;
-
   if (!email || !password) {
     return res.status(400).json({ error: "Missing fields" });
   }
@@ -66,8 +66,17 @@ export default async function handler(req, res) {
       return res.status(401).json({ error: "Invalid email or password" });
     }
 
+    // 🔐 CREATE JWT
+    const token = jwt.sign(
+      { id: ID, username: USERNAME, role: ROLE },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
+
+    // ✅ RETURN TOKEN
     return res.json({
       success: true,
+      token,
       user: {
         id: ID,
         username: USERNAME,
