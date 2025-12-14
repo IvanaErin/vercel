@@ -19,25 +19,13 @@
         <div class="login-right">
             <h2>Member Login</h2>
 
-            <!-- IMPORTANT: no action, no method -->
             <form id="loginForm">
-
                 <div class="input-box">
-                    <input
-                        type="email"
-                        name="email"
-                        placeholder="Email"
-                        required
-                    >
+                    <input type="email" name="email" placeholder="Email" required>
                 </div>
 
                 <div class="input-box">
-                    <input
-                        type="password"
-                        name="password"
-                        placeholder="Password"
-                        required
-                    >
+                    <input type="password" name="password" placeholder="Password" required>
                 </div>
 
                 <button type="submit" class="login-btn">LOGIN</button>
@@ -74,8 +62,11 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
             return;
         }
 
-        alert("✅ Login successful!");
-        window.location.href = "dashboard.html";
+        // 🔐 SAVE TOKEN (THIS WAS MISSING)
+        localStorage.setItem("token", data.token);
+
+        // ✅ REDIRECT TO DASHBOARD
+        window.location.href = "/dashboard.html";
 
     } catch (err) {
         console.error(err);
@@ -86,4 +77,3 @@ document.getElementById("loginForm").addEventListener("submit", async (e) => {
 
 </body>
 </html>
-
