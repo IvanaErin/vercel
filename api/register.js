@@ -1,4 +1,15 @@
+import snowflake from "snowflake-sdk";
 import bcrypt from "bcryptjs";
+
+const connection = snowflake.createConnection({
+  account: process.env.SNOWFLAKE_ACCOUNT,
+  username: process.env.SNOWFLAKE_USERNAME,
+  password: process.env.SNOWFLAKE_PASSWORD,
+  warehouse: process.env.SNOWFLAKE_WAREHOUSE,
+  database: process.env.SNOWFLAKE_DATABASE,
+  schema: process.env.SNOWFLAKE_SCHEMA,
+  role: process.env.SNOWFLAKE_ROLE
+});
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -6,61 +17,38 @@ export default async function handler(req, res) {
   }
 
   const { username, email, password } = req.body;
-
   if (!username || !email || !password) {
     return res.status(400).json({ error: "Missing fields" });
   }
 
   try {
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const safeEmail = email.toLowerCase();
+    const hashed = await bcrypt.hash(password, 10);
 
-    const sql = `
-      INSERT INTO ${process.env.SNOWFLAKE_DATABASE}.${process.env.SNOWFLAKE_SCHEMA}.users
-      (username, email, password, role)
-      VALUES (?, ?, ?, 'user')
-    `;
-
-    const response = await fetch(
-      `https://${process.env.SNOWFLAKE_ACCOUNT}.snowflakecomputing.com/api/v2/statements`,
-      {
-        method: "POST",
-        headers: {
-          Authorization:
-            "Basic " +
-            Buffer.from(
-              `${process.env.SNOWFLAKE_USER}:${process.env.SNOWFLAKE_PASSWORD}`
-            ).toString("base64"),
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          statement: sql,
-          bindings: {
-            1: { type: "TEXT", value: username },
-            2: { type: "TEXT", value: safeEmail },
-            3: { type: "TEXT", value: hashedPassword }
-          },
-          warehouse: process.env.SNOWFLAKE_WAREHOUSE,
-          role: process.env.SNOWFLAKE_ROLE
-        })
+    connection.connect(err => {
+      if (err) {
+        console.error("Connection error:", err);
+        return res.status(500).json({ error: "DB connection failed" });
       }
-    );
 
-    const data = await response.json();
+      connection.execute({
+        sqlText: `
+          INSERT INTO users (username, email, password, role)
+          VALUES (?, ?, ?, 'user')
+        `,
+        binds: [username, email.toLowerCase(), hashed],
+        complete: (err) => {
+          if (err) {
+            console.error("Insert error:", err);
+            return res.status(400).json({ error: err.message });
+          }
 
-    // 🔴 SHOW REAL ERROR
-    if (!response.ok) {
-      console.error("Snowflake error:", data);
-      return res.status(500).json({
-        error: data.message || "Database error",
-        code: data.code
+          return res.json({ success: true });
+        }
       });
-    }
-
-    return res.json({ success: true });
+    });
 
   } catch (err) {
     console.error("Server crash:", err);
-    return res.status(500).json({ error: "Server crashed" });
+    return res.status(500).json({ error: "Server error" });
   }
 }
